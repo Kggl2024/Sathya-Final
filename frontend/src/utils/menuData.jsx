@@ -21,54 +21,62 @@ import {
   PanelLeftOpen,
 } from 'lucide-react'; // tree-shakable with Vite [8]
 
-export const topMenus = [
-  { id: 1, name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { id: 2, name: 'Contract Management', path: '/contracts', icon: PaintBucket },
+const encodedUserId = localStorage.getItem("encodedUserId");
+
+const getTopMenus = (encodedUserId) => [
+  { id: 1, name: 'Dashboard', path: `/admin/dashboard/${encodedUserId}`, icon: LayoutDashboard },
+  { id: 2, name: 'Contract Management', path: `/admin/contracts/${encodedUserId}`, icon: PaintBucket },
   { id: 3, name: 'Supply Management', path: '/supply', icon: Package },
   { id: 4, name: 'Finance Management', path: '/finance', icon: IndianRupee },
   { id: 5, name: 'Resource Management', path: '/resources', icon: SwatchBook },
-  // user icon used in topbar
   { id: 99, name: 'User', path: '#', icon: User },
 ];
 
+export const topMenus = getTopMenus(encodedUserId);
+
 // Left sidebar config per section
 export const sidebarConfig = {
-  '/': [
+  '/admin/dashboard': [
     {
       title: 'Overview',
       icon: LayoutDashboard,
       items: [
-        { label: 'Summary', to: '/', icon: ListCollapse },
-        { label: 'Reports', to: '/reports', icon: FileText },
+        { label: 'Summary', to: `/admin/dashboard/${encodedUserId}`, icon: ListCollapse },
+        { label: 'Reports', to: `/admin/dashboard/reports/${encodedUserId}`, icon: FileText },
       ],
     },
   ],
-  '/contracts': [
+  '/admin/contracts': [
     {
       title: 'Masters',
       icon: ClipboardList,
       items: [
-        { label: 'Master Client Creation', to: '/contracts/master-client', icon: Users },
-        { label: 'Master PO Creation', to: '/contracts/master-po', icon: FileText },
+        { label: 'Master Client Creation', to: `/admin/contracts/master-client/${encodedUserId}`, icon: Users },
+        { label: 'Master PO Creation', to: `/admin/contracts/master-po/${encodedUserId}`, icon: FileText },
       ],
     },
     {
       title: 'Project',
       icon: PanelsTopLeft,
       items: [
-        { label: 'Project List', to: '/contracts/projects', icon: Layers },
+        { label: 'Project List', to: `/admin/contracts/projects/${encodedUserId}`, icon: Layers },
+        { label: 'Project Projections', to: `/admin/contracts/projects/projections/${encodedUserId}`, icon: ListCollapse },
+        { label: 'Work Force Planning', to: `/admin/contracts/projects/work-force-planning/${encodedUserId}`, icon: Users },
+        { label: 'Material Planning', to: `/admin/contracts/projects/material-planning/${encodedUserId}`, icon: Boxes },
+        { label: 'Material Dispatch', to: `/admin/contracts/projects/material-dispatch/${encodedUserId}`, icon: Truck },
+
       ],
-      accordion: {
-        label: 'Project Projections',
-        icon: ListCollapse,
-        children: [
-          { label: 'Material Projection', to: '/contracts/projections/material', icon: Boxes },
-          { label: 'Labor Projection', to: '/contracts/projections/labor', icon: Hammer },
-          { label: 'Rental Projection', to: '/contracts/projections/rental', icon: Truck },
-          { label: 'Miscellaneous Projection', to: '/contracts/projections/misc', icon: Wrench },
-        ],
-        allowAdd: { label: 'Add Projection', icon: PlusCircle, to: '/contracts/projections/new' },
-      },
+      // accordion: {
+      //   label: 'Project Projections',
+      //   icon: ListCollapse,
+      //   children: [
+      //     { label: 'Material Projection', to: '/contracts/projections/material', icon: Boxes },
+      //     { label: 'Labor Projection', to: '/contracts/projections/labor', icon: Hammer },
+      //     { label: 'Rental Projection', to: '/contracts/projections/rental', icon: Truck },
+      //     { label: 'Miscellaneous Projection', to: '/contracts/projections/misc', icon: Wrench },
+      //   ],
+      //   allowAdd: { label: 'Add Projection', icon: PlusCircle, to: '/contracts/projections/new' },
+      // },
     },
   ],
   '/supply': [
