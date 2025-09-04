@@ -24,12 +24,12 @@ import {
 const encodedUserId = localStorage.getItem("encodedUserId");
 
 const getTopMenus = (encodedUserId) => [
-  { id: 1, name: 'Dashboard', path: `/admin/dashboard/${encodedUserId}`, icon: LayoutDashboard },
-  { id: 2, name: 'Contract Management', path: `/admin/contracts/${encodedUserId}`, icon: PaintBucket },
-  { id: 3, name: 'Supply Management', path: '/supply', icon: Package },
-  { id: 4, name: 'Finance Management', path: '/finance', icon: IndianRupee },
-  { id: 5, name: 'Resource Management', path: '/resources', icon: SwatchBook },
-  { id: 99, name: 'User', path: '#', icon: User },
+  { id: 1, name: 'Dashboard', path: `/admin/dashboard/${encodedUserId}`, activePath:"/admin/dashboard", icon: LayoutDashboard },
+  { id: 2, name: 'Contract Management', path: `/admin/contracts/${encodedUserId}`, activePath:"/admin/contracts", icon: PaintBucket },
+  { id: 3, name: 'Supply Management', path: '/supply', activePath:"/supply", icon: Package },
+  { id: 4, name: 'Finance Management', path: '/finance', activePath:"/finance", icon: IndianRupee },
+  { id: 5, name: 'Resource Management', path: '/resources', activePath:"/resources", icon: SwatchBook },
+  { id: 99, name: 'User', path: '#', activePath:"#", icon: User },
 ];
 
 export const topMenus = getTopMenus(encodedUserId);

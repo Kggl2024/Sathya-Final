@@ -3,6 +3,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import MaterialPlanning from './pages/contract/MaterialPlanning';
+import MaterialDispatch from './pages/contract/MaterialDispatch';
+import ClientMasterCreation from './pages/contract/ClientMasterCreation';
+import ProjectList from './pages/contract/ProjectList';
+import POMasterCreation from './pages/contract/POMasterCreation';
+import POMasterMain from './pages/contract/POMasterMain';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
@@ -26,13 +32,51 @@ const App = () => {
 
           {/* Contracts */}
           <Route path="/admin/contracts/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Contract Management" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/master-client/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Master Client Creation" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/master-po/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Master PO Creation" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/projects/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Projects" /></ProtectedRoute>} />
+          <Route 
+              path="/admin/contracts/master-client/:encodedUserId" 
+              element={
+              <ProtectedRoute role="admin">
+                <ClientMasterCreation />
+              </ProtectedRoute>
+              } 
+          />
+          
+          <Route 
+              path="/admin/contracts/master-po/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  {/* <POMasterCreation /> */}
+                  <POMasterMain />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/admin/contracts/projects/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <ProjectList />
+                </ProtectedRoute>
+              } 
+          />
           <Route path="/admin/contracts/projects/projections/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Project Projections" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/projects/material-planning/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Material Planning" /></ProtectedRoute>} />
           <Route path="/admin/contracts/projects/work-force-planning/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Workforce Planning" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/projects/material-dispatch/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Material Dispatch" /></ProtectedRoute>} />
+          <Route 
+              path="/admin/contracts/projects/material-planning/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <MaterialPlanning />
+                </ProtectedRoute>
+              } 
+          />
+          <Route 
+              path="/admin/contracts/projects/material-dispatch/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <MaterialDispatch />
+                </ProtectedRoute>
+              } 
+          />
 
           {/* Supply */}
           <Route path="/supply" element={<Placeholder title="Supply Management" />} />

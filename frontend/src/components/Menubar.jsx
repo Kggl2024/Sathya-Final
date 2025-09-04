@@ -22,7 +22,7 @@ const Menubar = ({ onMobileMenuToggle }) => {
           .filter(m => m.id !== 99)
           .map((item) => {
             const ActiveIcon = item.icon;
-            const active = location.pathname === item.path || location.pathname.startsWith(item.path) && item.path !== '/';
+            const active = location.pathname === item.path || location.pathname.startsWith(item.activePath) && item.activePath !== '/';
             return (
               <li key={item.id}>
                 <Link
