@@ -9,6 +9,8 @@ import ClientMasterCreation from './pages/contract/ClientMasterCreation';
 import ProjectList from './pages/contract/ProjectList';
 import POMasterCreation from './pages/contract/POMasterCreation';
 import POMasterMain from './pages/contract/POMasterMain';
+import WorkForcePlanning from './pages/contract/WorkForcePlanning';
+import ProjectProjection from './pages/contract/ProjectProjection';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
@@ -28,10 +30,12 @@ const App = () => {
         <Route element={<AppLayout />}>
           {/* Dashboard (use a different path than "/" now) */}
           <Route path="/admin/dashboard/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Dashboard" /></ProtectedRoute>} />
+          
           <Route path="/admin/dashboard/reports/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Dashboard Reports" /></ProtectedRoute>} />
 
           {/* Contracts */}
           <Route path="/admin/contracts/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Contract Management" /></ProtectedRoute>} />
+          
           <Route 
               path="/admin/contracts/master-client/:encodedUserId" 
               element={
@@ -59,8 +63,25 @@ const App = () => {
                 </ProtectedRoute>
               } 
           />
-          <Route path="/admin/contracts/projects/projections/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Project Projections" /></ProtectedRoute>} />
-          <Route path="/admin/contracts/projects/work-force-planning/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Workforce Planning" /></ProtectedRoute>} />
+
+          <Route 
+              path="/admin/contracts/projects/projections/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                 <ProjectProjection />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/admin/contracts/projects/work-force-planning/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <WorkForcePlanning />
+                </ProtectedRoute>
+              } 
+          />
+
           <Route 
               path="/admin/contracts/projects/material-planning/:encodedUserId" 
               element={

@@ -35,6 +35,17 @@ const Login = () => {
       localStorage.setItem("encodedUserId", encodedUserId);
       localStorage.setItem("loginTime", Date.now().toString());
 
+      try {
+        const response = await axios.post("http://localhost:5000/auth/verify-token", { token });
+        // setUser(response.data);
+        sessionStorage.setItem('user', JSON.stringify(response.data));
+        console.log('Verified user data:', response.data);
+      } catch (error) {
+        console.error("Token verification failed:", error);
+        // handleLogout();
+        toast.error("Invalid or expired token. Please log in again.");
+      }
+
       setTimeout(() => {
         navigate(redirect);
       }, 2000);

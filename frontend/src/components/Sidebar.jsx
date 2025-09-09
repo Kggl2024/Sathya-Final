@@ -23,7 +23,7 @@ const Sidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
 
   const base = (
     <aside
-      className={`flex flex-col h-full bg-white border-r shadow-sm transition-all duration-300
+      className={`flex flex-col h-full bg-[#FAF9F6] shadow-lg transition-all duration-300
         ${collapsed ? 'w-16' : 'w-64'}`}
     >
       <div className={`flex items-center justify-between p-3 border-b ${collapsed ? 'justify-center' : ''}`}>
@@ -44,7 +44,7 @@ const Sidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
 
           return (
             <div key={group.title} className="mb-2">
-              <div className={`px-2 py-2 text-gray-500 uppercase text-xs font-semibold flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
+              <div className={`px-2 py-2 text-white bg-[#1e7a6f] uppercase text-xs font-semibold flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
                 <GroupIcon className="w-4 h-4" />
                 {!collapsed && <span>{group.title}</span>}
               </div>

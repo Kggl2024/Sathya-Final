@@ -1,50 +1,103 @@
-import { Link, useLocation } from 'react-router-dom';
-import { topMenus } from '../utils/menuData';
+  import { Link, useLocation, useNavigate } from 'react-router-dom';
+  import { topMenus } from '../utils/menuData';
+import { useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { User, X } from 'lucide-react';
+import axios from 'axios';
 
-const Menubar = ({ onMobileMenuToggle }) => {
-  const location = useLocation();
+  const Menubar = ({ onMobileMenuToggle }) => {
+    const location = useLocation();
+    const profileRef = useRef(null);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const user = JSON.parse(sessionStorage.getItem('user')) || {};
+    console.log('User from sessionStorage:', user.user_name, user.user_email);
+    const navigate = useNavigate();
 
-  return (
-    <div className="flex items-center justify-between bg-[#FAF9F6] text-[#1e7a6f] px-4 sm:px-6 shadow-md h-14">
-      <div className="flex items-center gap-2">
-        <button
-          className="lg:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-emerald-50"
-          onClick={onMobileMenuToggle}
-          aria-label="Open menu"
-        >
-          <svg width="24" height="24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
-        <img src="/logo_abstract.png" alt="Logo" className="w-16 p-1" />
-      </div>
+    const handleLogout = async () => {
+      try {
+        await axios.post("http://localhost:5000/auth/logout");
+        localStorage.removeItem("token");
+        localStorage.removeItem("encodedUserId");
+        localStorage.removeItem("loginTime");
+        sessionStorage.removeItem('user');
+        toast.success("Logged out successfully!");
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      } catch (error) {
+        console.error("Logout error:", error);
+        toast.error("Failed to log out");
+      }
+    };
 
-      <ul className="hidden md:flex items-center space-x-6">
-        {topMenus
-          .filter(m => m.id !== 99)
-          .map((item) => {
-            const ActiveIcon = item.icon;
-            const active = location.pathname === item.path || location.pathname.startsWith(item.activePath) && item.activePath !== '/';
-            return (
-              <li key={item.id}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center hover:text-blue-500 transition-colors font-medium ${active ? 'text-blue-600' : ''}`}
+    return (
+      <div className="flex items-center justify-between bg-[#FAF9F6] text-[#1e7a6f] px-4 sm:px-24">
+        <div className="flex items-center gap-2">
+          <button
+            className="lg:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-emerald-50"
+            onClick={onMobileMenuToggle}
+            aria-label="Open menu"
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <img src="/logo_abstract.png" alt="Logo" className="w-[70px] p-1" />
+        </div>
+
+        <ul className="hidden md:flex items-center space-x-6">
+          {topMenus
+            .filter(m => m.id !== 99)
+            .map((item) => {
+              const ActiveIcon = item.icon;
+              const active = location.pathname === item.path || location.pathname.startsWith(item.activePath) && item.activePath !== '/';
+              return (
+                <li key={item.id}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center hover:text-blue-500 transition-colors font-medium ${active ? 'text-blue-600' : ''}`}
+                  >
+                    <ActiveIcon className="w-5 h-5 mr-2" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+        </ul>
+
+        <div className="flex items-center">
+          <div ref={profileRef} className="">
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="w-10 h-10 rounded-full bg-[#1e7a6f] text-white flex items-center justify-center hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            aria-label="User Profile"
+          >
+            <User size={20} />
+          </button>
+          {isProfileOpen && (
+            <div className="w-64 bg-white rounded-lg shadow-xl p-4 z-50 animate-slide-in-down">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold text-gray-800">Profile</h3>
+                <button
+                  onClick={() => setIsProfileOpen(false)}
+                  className="p-1 rounded-full hover:bg-gray-200 transition-all duration-200 focus:outline-none"
+                  aria-label="Close Profile"
                 >
-                  <ActiveIcon className="w-5 h-5 mr-2" />
-                  {item.name}
-                </Link>
-              </li>
-            );
-          })}
-      </ul>
-
-      <div className="flex items-center">
-        <div className="w-9 h-9 rounded-full bg-[#1e7a6f] text-white flex items-center justify-center hover:bg-blue-400 cursor-pointer transition-colors">
-          {/* Could be a dropdown later */}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.761 0 5-2.686 5-6S14.761 0 12 0 7 2.686 7 6s2.239 6 5 6Zm0 2c-4.418 0-8 2.239-8 5v3h16v-3c0-2.761-3.582-5-8-5Z" fill="currentColor"/></svg>
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 capitalize">Name: {user.user_name}</p>
+              <p className="text-sm text-gray-600">Email: {user.user_email}</p>
+              <button
+                onClick={handleLogout}
+                className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition duration-200"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default Menubar;
+  export default Menubar;
