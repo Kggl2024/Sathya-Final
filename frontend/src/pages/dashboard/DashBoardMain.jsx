@@ -883,7 +883,7 @@ const prepareLineChartData = () => {
         label: type === 'shift' ? 'Total Shifts per Day' : 'Total Salary per Day',
         data,
         borderColor: colors[1],
-        backgroundColor: colors.map(c => c + '20'),
+        backgroundColor: colors.map(c => c + "90"),
         tension: 0.3,
         fill: false,
       }]
