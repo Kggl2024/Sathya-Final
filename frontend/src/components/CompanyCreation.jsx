@@ -184,7 +184,7 @@ const CompanyCreation = ({ onCompanyCreated, onClose }) => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-3">
             <Building2 className="text-indigo-600 w-6 h-6" />
-            <h3 className="text-2xl font-bold text-gray-900">Create Client Master</h3>
+            <h3 className="text-2xl font-bold text-gray-900">Create Client</h3>
           </div>
           <button
             onClick={onClose}
@@ -206,11 +206,11 @@ const CompanyCreation = ({ onCompanyCreated, onClose }) => {
             {/* Left Column */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name*</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Client Name*</label>
                 <input
                   type="text"
                   name="company_name"
-                  placeholder="Enter company name"
+                  placeholder="Enter client name"
                   value={formData.company_name}
                   onChange={handleChange}
                   required
@@ -244,7 +244,7 @@ const CompanyCreation = ({ onCompanyCreated, onClose }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Client/Vendor Code</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Client / Vendor Code</label>
                 <input
                   type="text"
                   name="vendor_code"

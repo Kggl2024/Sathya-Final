@@ -79,12 +79,12 @@ const ClientMasterCreation = () => {
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">Client Master</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Master Client Creation</h2>
         <button
           onClick={() => setShowCompanyModal(true)}
           className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all duration-200 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
-          Create Client Master
+          Create Client
         </button>
       </div>
 

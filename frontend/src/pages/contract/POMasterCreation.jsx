@@ -480,6 +480,7 @@ const POMasterCreation = ({
 
   const handleCompanyChange = (value) => {
     setSelectedCompanyId(value);
+    localStorage.setItem("selectedCompanyId", value);
     if (onCompanySelect) {
       onCompanySelect(value);
     }
@@ -1078,9 +1079,8 @@ const POMasterCreation = ({
 
   return (
     <div className="flex justify-center items-start min-h-screen bg-gray-50">
-      <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/70 transform transition-all duration-500 animate-slide-in-right">
-        <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 border border-gray-200">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Master Creation</h1>
+      <div className="container w-full mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Master PO Creation</h1>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="w-full sm:w-7/12">
@@ -1809,7 +1809,9 @@ const POMasterCreation = ({
             </div>
           )}
         </div>
-      </div>
+      {/* <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/70 transform transition-all duration-500 animate-slide-in-right">
+        
+      </div> */}
     </div>
   );
 };
