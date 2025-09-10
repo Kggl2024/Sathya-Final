@@ -16,6 +16,40 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `actual_budget`
+--
+
+DROP TABLE IF EXISTS `actual_budget`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `actual_budget` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `overhead_id` int NOT NULL,
+  `po_budget_id` int NOT NULL,
+  `actual_value` decimal(15,2) DEFAULT NULL,
+  `difference_value` decimal(15,2) DEFAULT NULL,
+  `remarks` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `splitted_budget` decimal(15,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `overhead_id` (`overhead_id`),
+  KEY `po_budget_id` (`po_budget_id`),
+  CONSTRAINT `actual_budget_ibfk_1` FOREIGN KEY (`overhead_id`) REFERENCES `overhead` (`id`),
+  CONSTRAINT `actual_budget_ibfk_2` FOREIGN KEY (`po_budget_id`) REFERENCES `po_budget` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `actual_budget`
+--
+
+LOCK TABLES `actual_budget` WRITE;
+/*!40000 ALTER TABLE `actual_budget` DISABLE KEYS */;
+INSERT INTO `actual_budget` VALUES (1,1,1,NULL,NULL,'','2025-09-05 04:06:35',153202.50),(2,2,1,NULL,NULL,'','2025-09-05 04:06:35',153202.50),(3,3,1,NULL,NULL,'','2025-09-05 04:06:35',153202.50);
+/*!40000 ALTER TABLE `actual_budget` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `city`
 --
 
@@ -73,7 +107,7 @@ CREATE TABLE `company` (
 
 LOCK TABLES `company` WRITE;
 /*!40000 ALTER TABLE `company` DISABLE KEYS */;
-INSERT INTO `company` VALUES ('CO001','Jay Jay Mills (India) Private Ltd.,','Sipcot Industrial Growth centre, K-32, Perundurai, Tamil Nadu 638052','Gunasekar','914294234015','33AAACJ7915N1ZB','998717',2,1,'638052','2025-08-25 05:02:52','2025-08-25 05:02:52');
+INSERT INTO `company` VALUES ('CO001','Jay Jay Mills (India) Private Ltd.,','Sipcot Industrial Growth centre, K-32, Perundurai, Tamil Nadu 638052','Gunasekar','914294234015','33AAACJ7915N1ZB','998717',2,1,'638052','2025-08-25 05:02:52','2025-08-25 05:02:52'),('CO002','KGISL','Saravanampatti','Suresh','9484904147','ABC2109345STC23','3456',NULL,1,'641035','2025-09-03 04:41:57','2025-09-03 04:41:57');
 /*!40000 ALTER TABLE `company` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -138,7 +172,7 @@ CREATE TABLE `completion_status` (
   KEY `fk_created_by` (`created_by`),
   CONSTRAINT `completion_status_ibfk_1` FOREIGN KEY (`rec_id`) REFERENCES `po_reckoner` (`rec_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -147,7 +181,7 @@ CREATE TABLE `completion_status` (
 
 LOCK TABLES `completion_status` WRITE;
 /*!40000 ALTER TABLE `completion_status` DISABLE KEYS */;
-INSERT INTO `completion_status` VALUES (1,1,1848,120,221760,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:38:10'),(2,2,1854,140,259560,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:46:39'),(3,3,550,100,55000,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:46:20'),(4,4,1710,135,230850,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:47:28');
+INSERT INTO `completion_status` VALUES (1,1,1848,120,221760,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:38:10'),(2,2,1854,140,259560,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:46:39'),(3,3,550,100,55000,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:46:20'),(4,4,1710,135,230850,NULL,NULL,NULL,NULL,'In Progress','Not Billed','2025-08-25 05:29:50',3,'2025-08-25 06:47:28'),(5,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-04 10:26:49',NULL,'2025-09-04 10:26:49'),(6,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-04 10:26:49',NULL,'2025-09-04 10:26:49');
 /*!40000 ALTER TABLE `completion_status` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -836,6 +870,31 @@ INSERT INTO `material_usage_history` VALUES (1,3,'2025-09-01',NULL,NULL,NULL,NUL
 UNLOCK TABLES;
 
 --
+-- Table structure for table `overhead`
+--
+
+DROP TABLE IF EXISTS `overhead`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `overhead` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `expense_name` varchar(100) NOT NULL,
+  `is_default` tinyint DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `overhead`
+--
+
+LOCK TABLES `overhead` WRITE;
+/*!40000 ALTER TABLE `overhead` DISABLE KEYS */;
+INSERT INTO `overhead` VALUES (1,'consumables',1),(2,'materials',1),(3,'labours',0);
+/*!40000 ALTER TABLE `overhead` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `petty_cash`
 --
 
@@ -918,6 +977,39 @@ LOCK TABLES `pipeline` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `po_budget`
+--
+
+DROP TABLE IF EXISTS `po_budget`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `po_budget` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `site_id` varchar(50) NOT NULL,
+  `desc_id` int NOT NULL,
+  `total_po_value` decimal(15,2) NOT NULL,
+  `total_budget_value` decimal(15,2) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_site_desc` (`site_id`,`desc_id`),
+  KEY `desc_id` (`desc_id`),
+  CONSTRAINT `po_budget_ibfk_1` FOREIGN KEY (`site_id`) REFERENCES `site_details` (`site_id`),
+  CONSTRAINT `po_budget_ibfk_2` FOREIGN KEY (`desc_id`) REFERENCES `work_descriptions` (`desc_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `po_budget`
+--
+
+LOCK TABLES `po_budget` WRITE;
+/*!40000 ALTER TABLE `po_budget` DISABLE KEYS */;
+INSERT INTO `po_budget` VALUES (1,'ST001',69,919215.00,459607.50,'2025-09-05 02:27:11','2025-09-05 02:38:01');
+/*!40000 ALTER TABLE `po_budget` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `po_reckoner`
 --
 
@@ -943,7 +1035,7 @@ CREATE TABLE `po_reckoner` (
   CONSTRAINT `fk_category` FOREIGN KEY (`category_id`) REFERENCES `item_category` (`category_id`),
   CONSTRAINT `fk_po_reckoner_site` FOREIGN KEY (`site_id`) REFERENCES `site_details` (`site_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `item_subcategory` (`subcategory_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -952,7 +1044,7 @@ CREATE TABLE `po_reckoner` (
 
 LOCK TABLES `po_reckoner` WRITE;
 /*!40000 ALTER TABLE `po_reckoner` DISABLE KEYS */;
-INSERT INTO `po_reckoner` VALUES (1,'CA105','SC101',1857,'sqm',120,222840,'ST001','69','10','2025-08-25 10:59:50'),(2,'CA105','SC102',1857,'sqm',140,259980,'ST001','69','10','2025-08-25 10:59:50'),(3,'CA105','SC103',1857,'sqm',100,185700,'ST001','69','10','2025-08-25 10:59:50'),(4,'CA105','SC105',1857,'sqm',135,250695,'ST001','69','10','2025-08-25 10:59:50');
+INSERT INTO `po_reckoner` VALUES (1,'CA105','SC101',1857,'sqm',120,222840,'ST001','69','10','2025-08-25 10:59:50'),(2,'CA105','SC102',1857,'sqm',140,259980,'ST001','69','10','2025-08-25 10:59:50'),(3,'CA105','SC103',1857,'sqm',100,185700,'ST001','69','10','2025-08-25 10:59:50'),(4,'CA105','SC105',1857,'sqm',135,250695,'ST001','69','10','2025-08-25 10:59:50'),(5,'CA101','SC101',1000,'sqm',73,73000,'ST002','47','10','2025-09-04 15:56:49'),(6,'CA101','SC102',1000,'sqm',73,73000,'ST002','47','10','2025-09-04 15:56:49');
 /*!40000 ALTER TABLE `po_reckoner` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -982,7 +1074,7 @@ CREATE TABLE `project_details` (
 
 LOCK TABLES `project_details` WRITE;
 /*!40000 ALTER TABLE `project_details` DISABLE KEYS */;
-INSERT INTO `project_details` VALUES ('PD001','CO001','PT001','Jay Jay Mills (Perundurai)');
+INSERT INTO `project_details` VALUES ('PD001','CO001','PT001','Jay Jay Mills (Perundurai)'),('PD002','CO002','PT001','kgcas');
 /*!40000 ALTER TABLE `project_details` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1077,7 +1169,7 @@ CREATE TABLE `report_master` (
   PRIMARY KEY (`report_id`),
   KEY `site_id` (`site_id`),
   CONSTRAINT `report_master_ibfk_1` FOREIGN KEY (`site_id`) REFERENCES `site_details` (`site_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1086,6 +1178,7 @@ CREATE TABLE `report_master` (
 
 LOCK TABLES `report_master` WRITE;
 /*!40000 ALTER TABLE `report_master` DISABLE KEYS */;
+INSERT INTO `report_master` VALUES (1,'2025-09-05','ST002'),(2,'2025-09-06','ST002'),(3,'2025-09-07','ST002'),(4,'2025-09-08','ST002'),(5,'2025-09-09','ST002'),(6,'2025-09-10','ST002'),(7,'2025-09-11','ST002');
 /*!40000 ALTER TABLE `report_master` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1175,7 +1268,7 @@ CREATE TABLE `site_details` (
 
 LOCK TABLES `site_details` WRITE;
 /*!40000 ALTER TABLE `site_details` DISABLE KEYS */;
-INSERT INTO `site_details` VALUES ('ST001','Perundurai ','6789098483','2025-05-28',NULL,'SI002',NULL,'PD001','LO008',2);
+INSERT INTO `site_details` VALUES ('ST001','Perundurai ','6789098483','2025-05-28',NULL,'SI002',NULL,'PD001','LO008',2),('ST002','ground','NA0000000001','2025-09-05','2025-09-11','SI002',NULL,'PD002','LO003',3);
 /*!40000 ALTER TABLE `site_details` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1214,6 +1307,7 @@ CREATE TABLE `siteincharge_assign` (
   `id` int NOT NULL AUTO_INCREMENT,
   `pd_id` varchar(30) NOT NULL,
   `site_id` varchar(30) NOT NULL,
+  `desc_id` int DEFAULT NULL,
   `emp_id` varchar(30) NOT NULL,
   `from_date` date NOT NULL,
   `to_date` date DEFAULT NULL,
@@ -1221,10 +1315,12 @@ CREATE TABLE `siteincharge_assign` (
   KEY `pd_id` (`pd_id`),
   KEY `site_id` (`site_id`),
   KEY `emp_id` (`emp_id`),
+  KEY `fk_siteincharge_desc_id` (`desc_id`),
+  CONSTRAINT `fk_siteincharge_desc_id` FOREIGN KEY (`desc_id`) REFERENCES `work_descriptions` (`desc_id`),
   CONSTRAINT `siteincharge_assign_ibfk_1` FOREIGN KEY (`pd_id`) REFERENCES `project_details` (`pd_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `siteincharge_assign_ibfk_2` FOREIGN KEY (`site_id`) REFERENCES `site_details` (`site_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `siteincharge_assign_ibfk_3` FOREIGN KEY (`emp_id`) REFERENCES `employee_master` (`emp_id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1233,7 +1329,7 @@ CREATE TABLE `siteincharge_assign` (
 
 LOCK TABLES `siteincharge_assign` WRITE;
 /*!40000 ALTER TABLE `siteincharge_assign` DISABLE KEYS */;
-INSERT INTO `siteincharge_assign` VALUES (1,'PD001','ST001','EMP003','2025-05-28','2025-08-31');
+INSERT INTO `siteincharge_assign` VALUES (1,'PD001','ST001',NULL,'EMP003','2025-05-28','2025-08-31'),(2,'PD002','ST002',NULL,'EMP006','2025-09-05','2025-09-11');
 /*!40000 ALTER TABLE `siteincharge_assign` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1358,7 +1454,7 @@ CREATE TABLE `structural_painting` (
   KEY `report_type_id` (`report_type_id`),
   CONSTRAINT `structural_painting_ibfk_1` FOREIGN KEY (`report_id`) REFERENCES `report_master` (`report_id`) ON DELETE CASCADE,
   CONSTRAINT `structural_painting_ibfk_2` FOREIGN KEY (`report_type_id`) REFERENCES `report_type` (`type_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1367,6 +1463,7 @@ CREATE TABLE `structural_painting` (
 
 LOCK TABLES `structural_painting` WRITE;
 /*!40000 ALTER TABLE `structural_painting` DISABLE KEYS */;
+INSERT INTO `structural_painting` VALUES (1,1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,1,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(3,1,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(4,2,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(5,2,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(6,2,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(7,3,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(8,3,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(9,3,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(10,4,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(11,4,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(12,4,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(13,5,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(14,5,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(15,5,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(16,6,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(17,6,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(18,6,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(19,7,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(20,7,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(21,7,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `structural_painting` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1573,4 +1670,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-09-02  9:20:13
+-- Dump completed on 2025-09-06  7:07:02

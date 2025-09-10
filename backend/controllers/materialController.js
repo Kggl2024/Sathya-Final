@@ -263,6 +263,77 @@ exports.fetchEmployees = async (req, res) => {
 };
 
 
+// exports.assignInchargeToSite = async (req, res) => {
+//   try {
+//     const assignments = Array.isArray(req.body) ? req.body : [req.body];
+
+//     if (assignments.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'At least one incharge assignment is required'
+//       });
+//     }
+
+//     const insertedIds = [];
+//     for (const { from_date, to_date, pd_id, site_id, emp_id } of assignments) {
+//       if (!from_date || !to_date || !pd_id || !site_id || !emp_id) {
+//         return res.status(400).json({
+//           status: 'error',
+//           message: 'Missing required fields: from_date, to_date, pd_id, site_id, and emp_id are required'
+//         });
+//       }
+
+//       if (!/^\d{4}-\d{2}-\d{2}$/.test(from_date) || !/^\d{4}-\d{2}-\d{2}$/.test(to_date)) {
+//         return res.status(400).json({
+//           status: 'error',
+//           message: 'Invalid date format: from_date and to_date must be in YYYY-MM-DD format'
+//         });
+//       }
+
+//       const fromDate = new Date(from_date);
+//       const toDate = new Date(to_date);
+//       if (toDate < fromDate) {
+//         return res.status(400).json({
+//           status: 'error',
+//           message: 'to_date must be after from_date'
+//         });
+//       }
+
+//       const [employee] = await db.query('SELECT emp_id FROM employee_master WHERE emp_id = ?', [emp_id]);
+//       if (employee.length === 0) {
+//         return res.status(400).json({
+//           status: 'error',
+//           message: `Invalid emp_id: ${emp_id} does not exist in employee_master`
+//         });
+//       }
+
+//       const [result] = await db.query(
+//         'INSERT INTO siteincharge_assign (from_date, to_date, pd_id, site_id, emp_id) VALUES (?, ?, ?, ?, ?)',
+//         [from_date, to_date, pd_id, site_id, emp_id]
+//       );
+//       insertedIds.push(result.insertId);
+//     }
+
+//     res.status(201).json({
+//       status: 'success',
+//       message: 'Incharges assigned to site successfully',
+//       data: { insertedIds }
+//     });
+//   } catch (error) {
+//     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid pd_id, site_id, or emp_id: referenced record does not exist'
+//       });
+//     }
+//     res.status(500).json({
+//       status: 'error',
+//       message: 'Internal server error',
+//       error: error.message
+//     });
+//   }
+// };
+
 
 exports.assignInchargeToSite = async (req, res) => {
   try {
@@ -344,6 +415,8 @@ exports.assignInchargeToSite = async (req, res) => {
     });
   }
 };
+
+
 
 exports.addEmployee = async (req, res) => {
   try {

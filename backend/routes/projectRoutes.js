@@ -21,6 +21,6 @@ router.get("/states", projectController.getStates);
 router.get("/cities", projectController.getCities);
 router.post("/create-state", projectController.createState);
 router.post("/create-city", projectController.createCity);
-
+router.get("/work-descriptions-by-site/:site_id", projectController.getWorkDescriptionsBySite);
 
 module.exports = router;

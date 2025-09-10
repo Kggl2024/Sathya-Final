@@ -185,120 +185,6 @@ exports.getNextPoNumber = async (req, res) => {
     }
 };
 
-// exports.createProjectWithSite = async (req, res) => {
-//     try {
-//         const { 
-//             project_type, 
-//             company_id, 
-//             project_name, 
-//             site_name, 
-//             po_number: providedPoNumber, 
-//             start_date, 
-//             end_date, 
-//             incharge_type, 
-//             location_id, 
-//             new_location_name,
-//             reckoner_type_id 
-//         } = req.body;
-
-//         console.log("Received createProjectWithSite request:", req.body);
-
-//         // Validate required fields
-//         if (!project_type || !company_id || !project_name || !site_name || 
-//             !start_date || !end_date || !incharge_type || 
-//             (!location_id && !new_location_name) || !reckoner_type_id) {
-//             console.error("Validation failed: Missing required fields");
-//             return res.status(400).json({ error: "All fields are required, including either location_id or new_location_name and reckoner_type_id" });
-//         }
-
-//         if (project_type !== "service") {
-//             console.error(`Invalid project type: ${project_type}`);
-//             return res.status(400).json({ error: "Project type must be 'service'" });
-//         }
-
-//         const project_type_id = await projectModel.getProjectTypeId(project_type);
-//         if (!project_type_id) {
-//             console.error(`Invalid project type ID for: ${project_type}`);
-//             return res.status(400).json({ error: "Invalid project type" });
-//         }
-
-//         let finalLocationId = location_id;
-//         if (new_location_name && !location_id) {
-//             const existingLocationId = await projectModel.getLocationId(new_location_name);
-//             if (existingLocationId) {
-//                 finalLocationId = existingLocationId;
-//             } else {
-//                 finalLocationId = await projectModel.generateNewLocationId();
-//                 await projectModel.insertLocation(finalLocationId, new_location_name);
-//             }
-//         }
-
-//         if (!finalLocationId) {
-//             console.error("No location ID provided or generated");
-//             return res.status(400).json({ error: "Location ID is required" });
-//         }
-
-//         let project = await projectModel.getProjectByNameAndType(project_name, project_type_id);
-//         let project_id;
-
-//         if (project) {
-//             project_id = project.pd_id;
-//         } else {
-//             project_id = await projectModel.generateNewProjectId();
-//             await projectModel.insertProject(project_id, project_type_id, company_id, project_name);
-//         }
-
-//         const incharge_id = await projectModel.getInchargeId(incharge_type);
-//         if (!incharge_id) {
-//             console.error(`Invalid incharge type: ${incharge_type}`);
-//             return res.status(400).json({ error: "Invalid incharge type" });
-//         }
-
-//         const site_id = await projectModel.generateNewSiteId();
-
-//         // Validate reckoner_type_id
-//         const reckonerTypes = await projectModel.getReckonerTypes();
-//         const reckonerType = reckonerTypes.find(type => type.type_id == reckoner_type_id);
-//         if (!reckonerType) {
-//             console.error(`Invalid reckoner type ID: ${reckoner_type_id}`);
-//             return res.status(400).json({ error: "Invalid reckoner type" });
-//         }
-
-//         // Auto-generate PO number for reckoner_type_id: 3 if not provided
-//         let finalPoNumber = providedPoNumber;
-//         if (!providedPoNumber && reckoner_type_id === '3') {
-//             finalPoNumber = await projectModel.getNextPoNumber(reckoner_type_id);
-//         }
-
-//         if (!finalPoNumber) {
-//             console.error("No PO number provided or generated for reckoner_type_id: 3");
-//             return res.status(400).json({ error: "PO number is required" });
-//         }
-
-//         await projectModel.insertSite(
-//             site_id, 
-//             site_name, 
-//             finalPoNumber, 
-//             start_date, 
-//             end_date, 
-//             incharge_id, 
-//             null, 
-//             project_id, 
-//             finalLocationId,
-//             reckoner_type_id
-//         );
-
-//         res.status(201).json({ message: "Project and Site created successfully", project_id, site_id });
-//     } catch (error) {
-//         console.error("Error in createProjectWithSite:", error);
-//         res.status(500).json({ error: "Internal Server Error" });
-//     }
-// };
-
-
-
-
-
 exports.createProjectWithSite = async (req, res) => {
   const db = require("../config/db"); // Assuming your DB connection
   let connection;
@@ -674,5 +560,28 @@ exports.createProject = async (req, res) => {
     } catch (error) {
         console.error("Error creating project:", error);
         res.status(500).json({ error: "Failed to create project", details: error.message });
+    }
+};
+
+
+
+
+
+// New function in projectController.js
+exports.getWorkDescriptionsBySite = async (req, res) => {
+    try {
+        const { site_id } = req.params;
+
+        if (!site_id) {
+            return res.status(400).json({ error: "site_id is required" });
+        }
+
+        // Assuming projectModel has a function getWorkDescriptionsBySite(site_id)
+        const descriptions = await projectModel.getWorkDescriptionsBySite(site_id);
+
+        res.status(200).json(descriptions);
+    } catch (error) {
+        console.error("Error fetching work descriptions by site:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };

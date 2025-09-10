@@ -18,7 +18,7 @@ const AppLayout = () => {
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
         />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 lg:p-6">
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

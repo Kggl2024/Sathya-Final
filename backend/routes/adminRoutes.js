@@ -12,17 +12,14 @@ router.get('/projects/:companyId', adminController.getProjectsByCompany);
 router.get('/sites/:projectId', adminController.getSitesByProject);
 
 // Route to get work descriptions by site ID and category ID
-router.get('/work-descriptions/:siteId/:categoryId', adminController.getWorkDescriptions);
+router.get('/work-descriptions/:siteId', adminController.getWorkDescriptions);
+// router.get('/completion-entries-by-site/:siteId', adminController.getCompletionEntriesBySite);
 
-// Route to get completion entries by site ID
-router.get('/completion-entries-by-site/:siteId', adminController.getCompletionEntriesBySite);
-
+router.get('/completion-entries-by-site/:siteId/:descId', adminController.getCompletionEntriesBySite);
 // Route to get PO reckoner totals by site ID
-router.get('/po-reckoner-totals/:siteId', adminController.getPoReckonerTotals);
-
+router.get('/po-reckoner-totals/:siteId/:descId', adminController.getPoReckonerTotals);
 // Route to get expense details by site ID
-router.get('/expense-details/:siteId', adminController.getExpenseDetailsBySite);
-
+router.get('/expense-details/:siteId/:descId', adminController.getExpenseDetailsBySite);
 
 // Route to get work descriptions by site ID
 router.get('/work-descriptions-by-site/:siteId', adminController.getWorkDescriptionsBySite);
@@ -45,5 +42,19 @@ router.post('/save-overhead', adminController.saveOverhead);
 router.post('/save-actual-budget', adminController.saveActualBudget);
 
 router.get('/actual-budget/:po_budget_id', adminController.getActualBudgetEntries);
+
+
+// Route to get contractors
+router.get('/contractors', adminController.getContractors);
+
+// Route to add labour
+router.post('/add-labour', adminController.addLabour);
+
+router.get("/labour", adminController.getLabourEmployees);
+router.post("/save-labour-assignment", adminController.saveLabourAssignment);
+
+// Updated route
+router.get('/material-graph/:siteId/:descId', adminController.materialgraph);
+
 
 module.exports = router;

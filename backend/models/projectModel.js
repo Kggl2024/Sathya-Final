@@ -385,3 +385,19 @@ exports.createProject = async (company_id, project_name) => {
     throw new Error("Failed to create project: " + error.message);
   }
 };
+
+
+
+exports.getWorkDescriptionsBySite = async (site_id) => {
+  const [rows] = await db.query(
+    `
+    SELECT DISTINCT wd.desc_id, wd.desc_name
+    FROM po_reckoner pr
+    JOIN work_descriptions wd ON pr.desc_id = wd.desc_id
+    WHERE pr.site_id = ?
+    ORDER BY wd.desc_name
+    `,
+    [site_id]
+  );
+  return rows;
+};

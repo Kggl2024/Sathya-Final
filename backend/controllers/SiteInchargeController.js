@@ -897,98 +897,426 @@ exports.saveLabourAttendance = async (req, res) => {
 
 exports.saveLabourAssignment = async (req, res) => {
   try {
-    const { project_id, site_id, desc_id, emp_ids, from_date, to_date, created_by } = req.body;
-    console.log('Received payload:', req.body); // Debug log
+    const { project_id, site_id, desc_id, labour_ids, from_date, to_date, created_by } = req.body;
+    console.log("Received payload:", req.body); // Debug log
 
     // Basic input validation
     if (!project_id) {
-      console.log('Validation failed: project_id missing');
-      return res.status(400).json({ status: 'error', message: 'project_id is required' });
+      console.log("Validation failed: project_id missing");
+      return res.status(400).json({ status: "error", message: "project_id is required" });
     }
     if (!site_id) {
-      console.log('Validation failed: site_id missing');
-      return res.status(400).json({ status: 'error', message: 'site_id is required' });
+      console.log("Validation failed: site_id missing");
+      return res.status(400).json({ status: "error", message: "site_id is required" });
     }
     if (!desc_id || isNaN(desc_id)) {
-      console.log('Validation failed: desc_id missing or not a number');
-      return res.status(400).json({ status: 'error', message: 'desc_id is required and must be a number' });
+      console.log("Validation failed: desc_id missing or not a number");
+      return res.status(400).json({ status: "error", message: "desc_id is required and must be a number" });
     }
-    if (!emp_ids || !Array.isArray(emp_ids) || emp_ids.length === 0) {
-      console.log('Validation failed: emp_ids missing, not an array, or empty');
-      return res.status(400).json({ status: 'error', message: 'emp_ids is required and must be a non-empty array' });
+    if (!labour_ids || !Array.isArray(labour_ids) || labour_ids.length === 0) {
+      console.log("Validation failed: labour_ids missing, not an array, or empty");
+      return res.status(400).json({ status: "error", message: "labour_ids is required and must be a non-empty array" });
     }
     if (!from_date || !/^\d{4}-\d{2}-\d{2}$/.test(from_date)) {
-      console.log('Validation failed: from_date missing or invalid format');
-      return res.status(400).json({ status: 'error', message: 'from_date is required in YYYY-MM-DD format' });
+      console.log("Validation failed: from_date missing or invalid format");
+      return res.status(400).json({ status: "error", message: "from_date is required in YYYY-MM-DD format" });
     }
     if (!to_date || !/^\d{4}-\d{2}-\d{2}$/.test(to_date)) {
-      console.log('Validation failed: to_date missing or invalid format');
-      return res.status(400).json({ status: 'error', message: 'to_date is required in YYYY-MM-DD format' });
+      console.log("Validation failed: to_date missing or invalid format");
+      return res.status(400).json({ status: "error", message: "to_date is required in YYYY-MM-DD format" });
     }
     if (!created_by || isNaN(created_by)) {
-      console.log('Validation failed: created_by missing or not a number');
-      return res.status(400).json({ status: 'error', message: 'created_by is required and must be a number' });
+      console.log("Validation failed: created_by missing or not a number");
+      return res.status(400).json({ status: "error", message: "created_by is required and must be a number" });
     }
 
     // Validate date range
     if (new Date(from_date) > new Date(to_date)) {
-      console.log('Validation failed: from_date later than to_date');
-      return res.status(400).json({ status: 'error', message: 'from_date cannot be later than to_date' });
+      console.log("Validation failed: from_date later than to_date");
+      return res.status(400).json({ status: "error", message: "from_date cannot be later than to_date" });
     }
 
     // Check foreign key existence
-    const [project] = await db.query('SELECT pd_id FROM project_details WHERE pd_id = ?', [project_id]);
+    const [project] = await db.query("SELECT pd_id FROM project_details WHERE pd_id = ?", [project_id]);
     if (project.length === 0) {
-      console.log('Validation failed: Invalid project_id', project_id);
-      return res.status(400).json({ status: 'error', message: 'Invalid project_id' });
+      console.log("Validation failed: Invalid project_id", project_id);
+      return res.status(400).json({ status: "error", message: "Invalid project_id" });
     }
-    const [site] = await db.query('SELECT site_id FROM site_details WHERE site_id = ?', [site_id]);
+    const [site] = await db.query("SELECT site_id FROM site_details WHERE site_id = ?", [site_id]);
     if (site.length === 0) {
-      console.log('Validation failed: Invalid site_id', site_id);
-      return res.status(400).json({ status: 'error', message: 'Invalid site_id' });
+      console.log("Validation failed: Invalid site_id", site_id);
+      return res.status(400).json({ status: "error", message: "Invalid site_id" });
     }
-    const [workDesc] = await db.query('SELECT desc_id FROM work_descriptions WHERE desc_id = ?', [desc_id]);
+    const [workDesc] = await db.query("SELECT desc_id FROM work_descriptions WHERE desc_id = ?", [desc_id]);
     if (workDesc.length === 0) {
-      console.log('Validation failed: Invalid desc_id', desc_id);
-      return res.status(400).json({ status: 'error', message: 'Invalid desc_id' });
+      console.log("Validation failed: Invalid desc_id", desc_id);
+      return res.status(400).json({ status: "error", message: "Invalid desc_id" });
     }
-    const [employees] = await db.query('SELECT emp_id FROM employee_master WHERE emp_id IN (?) AND designation_id = 7', [emp_ids]);
-    if (employees.length !== emp_ids.length) {
-      console.log('Validation failed: Invalid emp_ids', emp_ids);
-      return res.status(400).json({ status: 'error', message: 'One or more emp_ids are invalid or do not have designation_id = 7' });
+    const [labours] = await db.query("SELECT id FROM labour WHERE id IN (?)", [labour_ids]);
+    if (labours.length !== labour_ids.length) {
+      console.log("Validation failed: Invalid labour_ids", labour_ids);
+      return res.status(400).json({ status: "error", message: "One or more labour_ids are invalid" });
     }
-    const [user] = await db.query('SELECT user_id FROM users WHERE user_id = ?', [created_by]);
+    const [user] = await db.query("SELECT user_id FROM users WHERE user_id = ?", [created_by]);
     if (user.length === 0) {
-      console.log('Validation failed: Invalid created_by', created_by);
-      return res.status(400).json({ status: 'error', message: 'Invalid created_by user_id' });
+      console.log("Validation failed: Invalid created_by", created_by);
+      return res.status(400).json({ status: "error", message: "Invalid created_by user_id" });
     }
 
-    // Insert a row for each emp_id
-    for (const emp_id of emp_ids) {
+    // Insert a row for each labour_id
+    for (const labour_id of labour_ids) {
       await db.query(
         `INSERT INTO labour_assignment 
-         (project_id, site_id, desc_id, emp_id, from_date, to_date, created_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [project_id, site_id, desc_id, emp_id, from_date, to_date, created_by]
+         (project_id, site_id, desc_id, labour_id, from_date, to_date, created_by, created_at, salary)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NULL)`,
+        [project_id, site_id, desc_id, labour_id, from_date, to_date, created_by]
       );
     }
 
     res.status(201).json({
-      status: 'success',
-      message: 'Labour assignments saved successfully'
+      status: "success",
+      message: "Labour assignments saved successfully",
     });
   } catch (error) {
-    console.error('Error in saveLabourAssignment:', error);
+    console.error("Error in saveLabourAssignment:", {
+      error: error.message,
+      stack: error.stack,
+    });
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({
+        status: "error",
+        message: "Duplicate labour assignment",
+      });
+    }
+    if (error.code === "ER_NO_REFERENCED_ROW_2") {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid foreign key reference",
+      });
+    }
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+// exports.getLabourAttendance = async (req, res) => {
+//   try {
+//     const { project_id, site_id, desc_id, entry_date } = req.query;
+
+//     if (!project_id || !site_id || !desc_id || isNaN(desc_id)) {
+//       console.log('Validation failed: Missing or invalid project_id, site_id, or desc_id');
+//       return res.status(400).json({ status: 'error', message: 'project_id, site_id, and desc_id are required' });
+//     }
+//     if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
+//       console.log('Validation failed: entry_date missing or invalid format');
+//       return res.status(400).json({ status: 'error', message: 'entry_date is required in YYYY-MM-DD format' });
+//     }
+
+//     const [labours] = await db.query(
+//       `SELECT la.id, la.emp_id, em.full_name, lat.shift
+//        FROM labour_assignment la 
+//        JOIN employee_master em ON la.emp_id = em.emp_id 
+//        LEFT JOIN labour_attendance lat ON la.id = lat.labour_assignment_id AND lat.entry_date = ?
+//        WHERE la.project_id = ? AND la.site_id = ? AND la.desc_id = ?`,
+//       [entry_date, project_id, site_id, desc_id]
+//     );
+
+//     res.status(200).json({
+//       status: 'success',
+//       data: labours || []
+//     });
+//   } catch (error) {
+//     console.error('Error in getLabourAttendance:', error);
+//     res.status(500).json({
+//       status: 'error',
+//       message: 'Internal server error',
+//       error: error.message
+//     });
+//   }
+// };
+
+exports.getLabourAttendance = async (req, res) => {
+  try {
+    const { project_id, site_id, desc_id, entry_date } = req.query;
+
+    // Input validation
+    if (!project_id || !site_id || !desc_id || isNaN(desc_id)) {
+      console.log(
+        `Validation failed: Missing or invalid parameters - project_id: ${project_id}, site_id: ${site_id}, desc_id: ${desc_id}`
+      );
+      return res.status(400).json({
+        status: "error",
+        message: "project_id, site_id, and desc_id are required and must be valid",
+      });
+    }
+
+    if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
+      console.log(`Validation failed: Invalid entry_date - ${entry_date}`);
+      return res.status(400).json({
+        status: "error",
+        message: "entry_date is required in YYYY-MM-DD format",
+      });
+    }
+
+    // Query with DISTINCT to avoid duplicate rows
+    const [labours] = await db.query(
+      `SELECT DISTINCT la.id, la.labour_id, l.full_name, lat.shift
+       FROM labour_assignment la 
+       JOIN labour l ON la.labour_id = l.id 
+       LEFT JOIN labour_attendance lat ON la.id = lat.labour_assignment_id AND lat.entry_date = ?
+       WHERE la.project_id = ? AND la.site_id = ? AND la.desc_id = ?`,
+      [entry_date, project_id, site_id, desc_id]
+    );
+
+    // Log the number of records returned for debugging
+    console.log(
+      `getLabourAttendance: Retrieved ${labours.length} records for project_id: ${project_id}, site_id: ${site_id}, desc_id: ${desc_id}, entry_date: ${entry_date}`
+    );
+
+    // Return response
+    res.status(200).json({
+      status: "success",
+      data: labours || [],
+    });
+  } catch (error) {
+    console.error("Error in getLabourAttendance:", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+exports.getBudgetDetails = async (req, res) => {
+  try {
+    const { site_id } = req.query;
+
+    if (!site_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'site_id is required',
+      });
+    }
+
+    // Fetch po_budget for the site with desc_id
+    const [poBudgets] = await db.query(
+      `SELECT id, total_budget_value, desc_id 
+       FROM po_budget 
+       WHERE site_id = ?`,
+      [site_id]
+    );
+
+    if (poBudgets.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        data: []
+      });
+    }
+
+    const poBudgetIds = poBudgets.map(pb => pb.id);
+
+    // Fetch actual_budget entries with overhead details and work description
+    const [actualBudgets] = await db.query(
+      `SELECT 
+         ab.id, 
+         ab.overhead_id, 
+         ab.po_budget_id, 
+         ab.splitted_budget, 
+         ab.actual_value, 
+         ab.difference_value, 
+         ab.remarks,
+         o.expense_name,
+         wd.desc_name AS work_descriptions
+       FROM actual_budget ab
+       JOIN overhead o ON ab.overhead_id = o.id
+       LEFT JOIN po_budget pb ON ab.po_budget_id = pb.id
+       LEFT JOIN work_descriptions wd ON pb.desc_id = wd.desc_id
+       WHERE ab.po_budget_id IN (?)`,
+      [poBudgetIds]
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: actualBudgets
+    });
+  } catch (error) {
+    console.error('Error in getBudgetDetails:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+exports.getBudgetExpenseDetails = async (req, res) => {
+  try {
+    const { actual_budget_id, date } = req.query;
+
+    if (!actual_budget_id || isNaN(parseInt(actual_budget_id))) {
+      return res.status(400).json({ status: 'error', message: 'actual_budget_id is required and must be a number' });
+    }
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ status: 'error', message: 'date is required in YYYY-MM-DD format' });
+    }
+
+    const budgetId = parseInt(actual_budget_id);
+
+    // Fetch entries for the specific date
+    const [entries] = await db.query(
+      `SELECT * FROM actual_budget_history 
+       WHERE actual_budget_id = ? AND entry_date = ? 
+       ORDER BY created_at DESC`,
+      [budgetId, date]
+    );
+
+    // Fetch cumulative actual_value up to the date
+    const [cumulative] = await db.query(
+      `SELECT COALESCE(SUM(actual_value), 0) AS actual_value
+       FROM actual_budget_history 
+       WHERE actual_budget_id = ? AND entry_date <= ?`,
+      [budgetId, date]
+    );
+
+    // Fetch total cumulative actual_value (all dates)
+    const [totalCumulative] = await db.query(
+      `SELECT COALESCE(SUM(actual_value), 0) AS actual_value
+       FROM actual_budget_history 
+       WHERE actual_budget_id = ?`,
+      [budgetId]
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        cumulative: cumulative[0],
+        total_cumulative: totalCumulative[0],
+        entries
+      }
+    });
+  } catch (error) {
+    console.error('Error in getBudgetExpenseDetails:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error', error: error.message });
+  }
+};
+
+// Updated saveBudgetExpense - removed the exceeding check
+exports.saveBudgetExpense = async (req, res) => {
+  try {
+    const { actual_budget_id, entry_date, actual_value, remarks, created_by } = req.body;
+
+    // Validate actual_budget_id
+    if (!actual_budget_id || isNaN(actual_budget_id)) {
+      return res.status(400).json({ status: 'error', message: 'actual_budget_id is required and must be a number' });
+    }
+
+    const budgetId = parseInt(actual_budget_id);
+
+    // Validate entry_date
+    if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
+      return res.status(400).json({ status: 'error', message: 'entry_date is required in YYYY-MM-DD format' });
+    }
+
+    // Validate actual_value if provided
+    const validateValue = (val, field) => {
+      if (val === null || val === undefined) return null;
+      const parsed = parseFloat(val);
+      if (isNaN(parsed) || parsed < 0) {
+        throw new Error(`${field} must be a non-negative number or null`);
+      }
+      return parsed;
+    };
+
+    const validatedActualValue = validateValue(actual_value, 'actual_value');
+
+    // Validate remarks if provided
+    if (remarks && typeof remarks !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'remarks must be a string' });
+    }
+
+    // Check if actual_budget_id exists and get splitted_budget
+    const [budgetRecord] = await db.query('SELECT splitted_budget FROM actual_budget WHERE id = ?', [budgetId]);
+    if (budgetRecord.length === 0) {
+      return res.status(400).json({ status: 'error', message: `Invalid actual_budget_id (${budgetId}): record does not exist` });
+    }
+    const splittedBudget = parseFloat(budgetRecord[0].splitted_budget) || 0;
+
+    // Get current actual
+    const [currentActual] = await db.query(
+      `SELECT COALESCE(SUM(actual_value), 0) AS actual_value
+       FROM actual_budget_history 
+       WHERE actual_budget_id = ?`,
+      [budgetId]
+    );
+    const currActual = parseFloat(currentActual[0].actual_value) || 0;
+
+    // Insert into actual_budget_history
+    await db.query(
+      `INSERT INTO actual_budget_history 
+       (actual_budget_id, entry_date, actual_value, remarks, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [
+        budgetId,
+        entry_date,
+        validatedActualValue,
+        remarks || null
+      ]
+    );
+
+    // Update actual_budget with cumulative
+    const newActual = currActual + (validatedActualValue || 0);
+    const newDifference = splittedBudget - newActual; // Can be negative
+
+    await db.query(
+      `UPDATE actual_budget 
+       SET 
+         actual_value = ?,
+         difference_value = ?,
+         remarks = ?,
+         created_at = NOW()
+       WHERE id = ?`,
+      [
+        newActual,
+        newDifference,
+        remarks || null,
+        budgetId
+      ]
+    );
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Budget expense saved successfully'
+    });
+  } catch (error) {
+    console.error('Error in saveBudgetExpense:', error);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         status: 'error',
-        message: 'Duplicate labour assignment'
+        message: 'Duplicate entry error'
       });
     }
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(400).json({
         status: 'error',
-        message: 'Invalid foreign key reference'
+        message: 'Invalid actual_budget_id: referenced record does not exist'
+      });
+    }
+    if (error.code === 'ER_BAD_FIELD_ERROR') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid data format in request',
+        error: error.message
       });
     }
     res.status(500).json({
@@ -1002,38 +1330,222 @@ exports.saveLabourAssignment = async (req, res) => {
 
 
 
-exports.getLabourAttendance = async (req, res) => {
+exports.getBudgetWorkDescriptionsBySite = async (req, res) => {
   try {
-    const { project_id, site_id, desc_id, entry_date } = req.query;
+    const { site_id } = req.params;
 
-    if (!project_id || !site_id || !desc_id || isNaN(desc_id)) {
-      console.log('Validation failed: Missing or invalid project_id, site_id, or desc_id');
-      return res.status(400).json({ status: 'error', message: 'project_id, site_id, and desc_id are required' });
-    }
-    if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
-      console.log('Validation failed: entry_date missing or invalid format');
-      return res.status(400).json({ status: 'error', message: 'entry_date is required in YYYY-MM-DD format' });
+    if (!site_id) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'site_id is required' 
+      });
     }
 
-    const [labours] = await db.query(
-      `SELECT la.id, la.emp_id, em.full_name, lat.shift
-       FROM labour_assignment la 
-       JOIN employee_master em ON la.emp_id = em.emp_id 
-       LEFT JOIN labour_attendance lat ON la.id = lat.labour_assignment_id AND lat.entry_date = ?
-       WHERE la.project_id = ? AND la.site_id = ? AND la.desc_id = ?`,
-      [entry_date, project_id, site_id, desc_id]
+    // First, get unique desc_id from po_reckoner for the given site_id
+    const [descIds] = await db.query(
+      `SELECT DISTINCT desc_id 
+       FROM po_reckoner 
+       WHERE site_id = ?`,
+      [site_id]
+    );
+
+    if (descIds.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        data: []
+      });
+    }
+
+    // Get the corresponding desc_name from work_descriptions table
+    const descIdList = descIds.map(d => d.desc_id);
+    const [descriptions] = await db.query(
+      `SELECT desc_id, desc_name 
+       FROM work_descriptions 
+       WHERE desc_id IN (?) 
+       ORDER BY desc_name`,
+      [descIdList]
     );
 
     res.status(200).json({
       status: 'success',
-      data: labours || []
+      data: descriptions || []
     });
   } catch (error) {
-    console.error('Error in getLabourAttendance:', error);
+    console.error('Error in getBudgetWorkDescriptionsBySite:', error);
     res.status(500).json({
       status: 'error',
       message: 'Internal server error',
       error: error.message
+    });
+  }
+};
+
+
+
+
+exports.getLabours = async (req, res) => {
+  try {
+    // Query to fetch id and full_name from the labour table
+    const [labours] = await db.query(
+      `SELECT id, full_name 
+       FROM labour`
+    );
+
+    // Log the number of records retrieved for debugging
+    console.log(`getLabours: Retrieved ${labours.length} labour records`);
+
+    // Return response
+    res.status(200).json({
+      status: "success",
+      data: labours || [],
+    });
+  } catch (error) {
+    console.error("Error in getLabours:", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+exports.calculateLabourBudget = async (req, res) => {
+  try {
+    // Step 1: Fetch all labour assignments with labour_id, full_name, desc_id, and desc_name
+    const [assignments] = await db.query(
+      `SELECT la.id, la.project_id, la.site_id, la.desc_id, la.salary, la.labour_id, l.full_name, wd.desc_name 
+       FROM labour_assignment la
+       JOIN labour l ON la.labour_id = l.id
+       JOIN work_descriptions wd ON la.desc_id = wd.desc_id`
+    );
+
+    if (assignments.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No labour assignments found.",
+      });
+    }
+
+    // Step 2: Group assignments by po_budget_id for efficient processing
+    const budgetMap = new Map(); // Map<po_budget_id, { total_salary, total_shifts, desc_id, desc_name, labour_assignments }>
+
+    for (const assignment of assignments) {
+      // Find po_budget_id for the assignment's site_id and desc_id
+      const [poBudgetRows] = await db.query(
+        `SELECT id FROM po_budget WHERE site_id = ? AND desc_id = ?`,
+        [assignment.site_id, assignment.desc_id]
+      );
+
+      if (poBudgetRows.length === 0) {
+        console.log(
+          `No po_budget record found for site_id: ${assignment.site_id}, desc_id: ${assignment.desc_id}`
+        );
+        continue; // Skip if no matching po_budget record
+      }
+
+      const po_budget_id = poBudgetRows[0].id;
+
+      // Fetch attendances for this labour_assignment with shift and entry_date
+      const [attendances] = await db.query(
+        `SELECT shift, entry_date FROM labour_attendance WHERE labour_assignment_id = ?`,
+        [assignment.id]
+      );
+
+      let total_salary = 0;
+      let total_shifts = 0;
+      const shifts_by_date = [];
+
+      for (const attendance of attendances) {
+        const shift = parseFloat(attendance.shift) || 0; // Convert shift to number
+        total_salary += shift * (parseFloat(assignment.salary) || 0);
+        total_shifts += shift;
+        shifts_by_date.push({
+          entry_date: attendance.entry_date,
+          shift, // Store as number
+        });
+      }
+
+      // Format total_shifts to one decimal place
+      total_shifts = parseFloat(total_shifts.toFixed(1));
+
+      // Aggregate total_salary and total_shifts by po_budget_id
+      if (!budgetMap.has(po_budget_id)) {
+        budgetMap.set(po_budget_id, { 
+          total_salary: 0, 
+          total_shifts: 0, 
+          desc_id: assignment.desc_id, 
+          desc_name: assignment.desc_name, 
+          labour_assignments: [] 
+        });
+      }
+      const budget = budgetMap.get(po_budget_id);
+      budget.total_salary += total_salary;
+      budget.total_shifts += total_shifts;
+      budget.labour_assignments.push({
+        labour_assignment_id: assignment.id,
+        labour_id: assignment.labour_id,
+        full_name: assignment.full_name,
+        salary: total_salary,
+        shifts_by_date,
+        total_shifts,
+      });
+    }
+
+    // Step 3: Store or update in actual_budget
+    for (const [po_budget_id, { total_salary }] of budgetMap) {
+      // Check if actual_budget record exists for po_budget_id and overhead_id = 2
+      const [actualBudgetRows] = await db.query(
+        `SELECT id, splitted_budget FROM actual_budget WHERE po_budget_id = ? AND overhead_id = 2`,
+        [po_budget_id]
+      );
+
+      const difference_value = actualBudgetRows.length > 0
+        ? (parseFloat(actualBudgetRows[0].splitted_budget) || 0) - total_salary
+        : 0 - total_salary; // Assume splitted_budget = 0 if new
+
+      if (actualBudgetRows.length > 0) {
+        // Update existing record
+        await db.query(
+          `UPDATE actual_budget SET actual_value = ?, difference_value = ? WHERE id = ?`,
+          [total_salary, difference_value, actualBudgetRows[0].id]
+        );
+      } else {
+        // Insert new record
+        await db.query(
+          `INSERT INTO actual_budget (po_budget_id, overhead_id, splitted_budget, actual_value, difference_value, remarks)
+           VALUES (?, 2, 0, ?, ?, NULL)`,
+          [po_budget_id, total_salary, difference_value]
+        );
+      }
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Labour budget calculated and stored/updated successfully.",
+      processed_po_budgets: Array.from(budgetMap.entries()).map(([po_budget_id, { total_salary, total_shifts, desc_id, desc_name, labour_assignments }]) => ({
+        po_budget_id,
+        desc_id,
+        desc_name,
+        total_salary, // overall_salary
+        total_shifts, // overall_shifts
+        labour_assignments,
+      })),
+    });
+  } catch (error) {
+    console.error("Error in calculateLabourBudget:", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };

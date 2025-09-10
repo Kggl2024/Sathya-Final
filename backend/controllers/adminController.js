@@ -44,16 +44,15 @@ exports.getSitesByProject = async (req, res) => {
   }
 };
 
-// Fetch work descriptions by site and category
 exports.getWorkDescriptions = async (req, res) => {
-  const { siteId, categoryId } = req.params;
+  const { siteId } = req.params;
   try {
     const [descriptions] = await db.query(
       `SELECT DISTINCT wd.desc_id, wd.desc_name
        FROM po_reckoner pr
        JOIN work_descriptions wd ON pr.desc_id = wd.desc_id
-       WHERE pr.site_id = ? AND pr.category_id = ?`,
-      [siteId, categoryId]
+       WHERE pr.site_id = ?`,
+      [siteId]
     );
     res.status(200).json({ success: true, data: descriptions });
   } catch (error) {
@@ -62,9 +61,127 @@ exports.getWorkDescriptions = async (req, res) => {
   }
 };
 
-// Fetch completion entries by site
+// exports.getCompletionEntriesBySite = async (req, res) => {
+//   const { siteId } = req.params;
+//   const { start_date, end_date } = req.query;
+
+//   try {
+//     if (start_date && !/^\d{4}-\d{2}-\d{2}$/.test(start_date)) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "start_date must be in YYYY-MM-DD format",
+//       });
+//     }
+//     if (end_date && !/^\d{4}-\d{2}-\d{2}$/.test(end_date)) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "end_date must be in YYYY-MM-DD format",
+//       });
+//     }
+//     if (start_date && end_date && start_date > end_date) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "start_date cannot be later than end_date",
+//       });
+//     }
+
+//     let query = `
+//       SELECT 
+//         ic.category_id,
+//         ic.category_name,
+//         isc.subcategory_name,
+//         DATE_FORMAT(ceh.entry_date, '%Y-%m-%d') as entry_date,
+//         ceh.entry_id,
+//         ceh.area_added,
+//         ceh.rate,
+//         ceh.value_added,
+//         ceh.created_by,
+//         pr.desc_id,
+//         DATE_FORMAT(CONVERT_TZ(ceh.created_at, '+00:00', '+05:30'), '%Y-%m-%d') as created_date,
+//         DATE_FORMAT(CONVERT_TZ(ceh.created_at, '+00:00', '+05:30'), '%H:%i:%s') as created_time
+//       FROM completion_entries_history ceh
+//       JOIN po_reckoner pr ON ceh.rec_id = pr.rec_id
+//       JOIN item_category ic ON pr.category_id = ic.category_id
+//       JOIN item_subcategory isc ON pr.subcategory_id = isc.subcategory_id
+//       WHERE pr.site_id = ?
+//     `;
+//     const queryParams = [siteId];
+
+//     if (start_date) {
+//       query += ' AND ceh.entry_date >= ?';
+//       queryParams.push(start_date);
+//     }
+//     if (end_date) {
+//       query += ' AND ceh.entry_date <= ?';
+//       queryParams.push(end_date);
+//     }
+
+//     query += ' ORDER BY ic.category_id, isc.subcategory_name, ceh.entry_date, ceh.created_at';
+
+//     const [rows] = await db.query(query, queryParams);
+
+//     const categoryMap = new Map();
+//     rows.forEach(row => {
+//       const { category_id, category_name, subcategory_name, entry_date, desc_id, created_date, created_time, ...entry } = row;
+
+//       let category = categoryMap.get(category_id);
+//       if (!category) {
+//         category = { category_id, category_name, subcategories: new Map() };
+//         categoryMap.set(category_id, category);
+//       }
+
+//       let subcategory = category.subcategories.get(subcategory_name);
+//       if (!subcategory) {
+//         subcategory = { subcategory_name, entries_by_date: new Map() };
+//         category.subcategories.set(subcategory_name, subcategory);
+//       }
+
+//       let dateEntry = subcategory.entries_by_date.get(entry_date);
+//       if (!dateEntry) {
+//         dateEntry = { entry_date, entries: [] };
+//         subcategory.entries_by_date.set(entry_date, dateEntry);
+//       }
+
+//       dateEntry.entries.push({
+//         entry_id: row.entry_id,
+//         area_added: parseFloat(row.area_added) || 0,
+//         rate: parseFloat(row.rate) || 0,
+//         value_added: parseFloat(row.value_added) || 0,
+//         created_by: row.created_by,
+//         desc_id,
+//         created_date,
+//         created_time
+//       });
+//     });
+
+//     const groupedData = Array.from(categoryMap.values()).map(category => ({
+//       category_id: category.category_id,
+//       category_name: category.category_name,
+//       subcategories: Array.from(category.subcategories.values()).map(subcategory => ({
+//         subcategory_name: subcategory.subcategory_name,
+//         entries_by_date: Array.from(subcategory.entries_by_date.values())
+//       }))
+//     }));
+
+//     res.status(200).json({
+//       status: "success",
+//       data: groupedData
+//     });
+//   } catch (error) {
+//     console.error("Error fetching completion entries:", error);
+//     res.status(500).json({
+//       status: "error",
+//       message: "Failed to fetch completion entries",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// Fetch PO reckoner totals by site
+
+
 exports.getCompletionEntriesBySite = async (req, res) => {
-  const { siteId } = req.params;
+  const { siteId, descId } = req.params;
   const { start_date, end_date } = req.query;
 
   try {
@@ -92,6 +209,7 @@ exports.getCompletionEntriesBySite = async (req, res) => {
         ic.category_id,
         ic.category_name,
         isc.subcategory_name,
+        isc.billing,
         DATE_FORMAT(ceh.entry_date, '%Y-%m-%d') as entry_date,
         ceh.entry_id,
         ceh.area_added,
@@ -105,9 +223,9 @@ exports.getCompletionEntriesBySite = async (req, res) => {
       JOIN po_reckoner pr ON ceh.rec_id = pr.rec_id
       JOIN item_category ic ON pr.category_id = ic.category_id
       JOIN item_subcategory isc ON pr.subcategory_id = isc.subcategory_id
-      WHERE pr.site_id = ?
+      WHERE pr.site_id = ? AND pr.desc_id = ?
     `;
-    const queryParams = [siteId];
+    const queryParams = [siteId, descId];
 
     if (start_date) {
       query += ' AND ceh.entry_date >= ?';
@@ -122,9 +240,13 @@ exports.getCompletionEntriesBySite = async (req, res) => {
 
     const [rows] = await db.query(query, queryParams);
 
+    let billing_area = 0;
+    let billing_rate = 0;
+    let billing_value = 0;
+
     const categoryMap = new Map();
     rows.forEach(row => {
-      const { category_id, category_name, subcategory_name, entry_date, desc_id, created_date, created_time, ...entry } = row;
+      const { category_id, category_name, subcategory_name, billing, entry_date, desc_id, created_date, created_time, ...entry } = row;
 
       let category = categoryMap.get(category_id);
       if (!category) {
@@ -134,7 +256,7 @@ exports.getCompletionEntriesBySite = async (req, res) => {
 
       let subcategory = category.subcategories.get(subcategory_name);
       if (!subcategory) {
-        subcategory = { subcategory_name, entries_by_date: new Map() };
+        subcategory = { subcategory_name, billing, entries_by_date: new Map() };
         category.subcategories.set(subcategory_name, subcategory);
       }
 
@@ -144,7 +266,7 @@ exports.getCompletionEntriesBySite = async (req, res) => {
         subcategory.entries_by_date.set(entry_date, dateEntry);
       }
 
-      dateEntry.entries.push({
+      const entryData = {
         entry_id: row.entry_id,
         area_added: parseFloat(row.area_added) || 0,
         rate: parseFloat(row.rate) || 0,
@@ -153,7 +275,16 @@ exports.getCompletionEntriesBySite = async (req, res) => {
         desc_id,
         created_date,
         created_time
-      });
+      };
+
+      dateEntry.entries.push(entryData);
+
+      // Calculate billing totals for subcategories with billing = 1
+      if (billing === 1) {
+        billing_area += entryData.area_added;
+        billing_rate += entryData.rate;
+        billing_value += entryData.value_added;
+      }
     });
 
     const groupedData = Array.from(categoryMap.values()).map(category => ({
@@ -161,13 +292,17 @@ exports.getCompletionEntriesBySite = async (req, res) => {
       category_name: category.category_name,
       subcategories: Array.from(category.subcategories.values()).map(subcategory => ({
         subcategory_name: subcategory.subcategory_name,
+        billing: subcategory.billing,
         entries_by_date: Array.from(subcategory.entries_by_date.values())
       }))
     }));
 
     res.status(200).json({
       status: "success",
-      data: groupedData
+      data: groupedData,
+      billing_area: parseFloat(billing_area.toFixed(2)),
+      billing_rate: parseFloat(billing_rate.toFixed(2)),
+      billing_value: parseFloat(billing_value.toFixed(2))
     });
   } catch (error) {
     console.error("Error fetching completion entries:", error);
@@ -179,9 +314,14 @@ exports.getCompletionEntriesBySite = async (req, res) => {
   }
 };
 
-// Fetch PO reckoner totals by site
+
+
+
+
+
+
 exports.getPoReckonerTotals = async (req, res) => {
-  const { siteId } = req.params;
+  const { siteId, descId } = req.params;
   try {
     // Fetch overall totals
     const [totals] = await db.query(
@@ -190,8 +330,8 @@ exports.getPoReckonerTotals = async (req, res) => {
         AVG(rate) AS total_rate,
         SUM(value) AS total_value
        FROM po_reckoner 
-       WHERE site_id = ?`,
-      [siteId]
+       WHERE site_id = ? AND desc_id = ?`,
+      [siteId, descId]
     );
 
     if (totals.length === 0 || totals[0].total_po_quantity === null) {
@@ -220,8 +360,8 @@ exports.getPoReckonerTotals = async (req, res) => {
        JOIN item_subcategory isc ON pr.subcategory_id = isc.subcategory_id
        JOIN item_category ic ON pr.category_id = ic.category_id
        LEFT JOIN work_descriptions wd ON pr.desc_id = wd.desc_id
-       WHERE pr.site_id = ?`,
-      [siteId]
+       WHERE pr.site_id = ? AND pr.desc_id = ?`,
+      [siteId, descId]
     );
 
     // Group records by category, work description, and subcategory
@@ -273,10 +413,8 @@ exports.getPoReckonerTotals = async (req, res) => {
   }
 };
 
-// Fetch expense details by site
 exports.getExpenseDetailsBySite = async (req, res) => {
-  const { siteId } = req.params;
-  const { descId } = req.query;
+  const { siteId, descId } = req.params;
 
   try {
     // Fetch total allocated amount from petty_cash
@@ -284,14 +422,9 @@ exports.getExpenseDetailsBySite = async (req, res) => {
       SELECT 
         SUM(amount) AS total_allocated
       FROM petty_cash
-      WHERE site_id = ?
+      WHERE site_id = ? AND desc_id = ?
     `;
-    const pettyCashParams = [siteId];
-
-    if (descId) {
-      pettyCashQuery += ' AND desc_id = ?';
-      pettyCashParams.push(descId);
-    }
+    const pettyCashParams = [siteId, descId];
 
     const [pettyCashTotals] = await db.query(pettyCashQuery, pettyCashParams);
     const total_allocated = parseFloat(pettyCashTotals[0].total_allocated) || 0;
@@ -302,14 +435,9 @@ exports.getExpenseDetailsBySite = async (req, res) => {
         SUM(siee.amount) AS total_spent
       FROM siteincharge_exp_entry siee
       JOIN petty_cash pc ON siee.petty_cash_id = pc.id
-      WHERE pc.site_id = ?
+      WHERE pc.site_id = ? AND pc.desc_id = ?
     `;
-    const totalSpentParams = [siteId];
-
-    if (descId) {
-      totalSpentQuery += ' AND pc.desc_id = ?';
-      totalSpentParams.push(descId);
-    }
+    const totalSpentParams = [siteId, descId];
 
     const [totalSpentResult] = await db.query(totalSpentQuery, totalSpentParams);
     const total_spent = parseFloat(totalSpentResult[0].total_spent) || 0;
@@ -323,19 +451,11 @@ exports.getExpenseDetailsBySite = async (req, res) => {
       FROM siteincharge_exp_entry siee
       JOIN petty_cash pc ON siee.petty_cash_id = pc.id
       JOIN work_descriptions d ON pc.desc_id = d.desc_id
-      WHERE pc.site_id = ?
-    `;
-    const expensesByDescParams = [siteId];
-
-    if (descId) {
-      expensesByDescQuery += ' AND pc.desc_id = ?';
-      expensesByDescParams.push(descId);
-    }
-
-    expensesByDescQuery += `
+      WHERE pc.site_id = ? AND pc.desc_id = ?
       GROUP BY d.desc_name, pc.desc_id
       ORDER BY d.desc_name
     `;
+    const expensesByDescParams = [siteId, descId];
 
     const [expensesByDesc] = await db.query(expensesByDescQuery, expensesByDescParams);
 
@@ -347,19 +467,11 @@ exports.getExpenseDetailsBySite = async (req, res) => {
       FROM siteincharge_exp_entry siee
       JOIN petty_cash pc ON siee.petty_cash_id = pc.id
       JOIN expense_category ec ON siee.expense_category_id = ec.id
-      WHERE pc.site_id = ?
-    `;
-    const expensesByCategoryParams = [siteId];
-
-    if (descId) {
-      expensesByCategoryQuery += ' AND pc.desc_id = ?';
-      expensesByCategoryParams.push(descId);
-    }
-
-    expensesByCategoryQuery += `
+      WHERE pc.site_id = ? AND pc.desc_id = ?
       GROUP BY ec.exp_category
       ORDER BY ec.exp_category
     `;
+    const expensesByCategoryParams = [siteId, descId];
 
     const [expensesByCategory] = await db.query(expensesByCategoryQuery, expensesByCategoryParams);
 
@@ -370,19 +482,11 @@ exports.getExpenseDetailsBySite = async (req, res) => {
         SUM(siee.amount) AS total_expense
       FROM siteincharge_exp_entry siee
       JOIN petty_cash pc ON siee.petty_cash_id = pc.id
-      WHERE pc.site_id = ?
-    `;
-    const expensesByDateParams = [siteId];
-
-    if (descId) {
-      expensesByDateQuery += ' AND pc.desc_id = ?';
-      expensesByDateParams.push(descId);
-    }
-
-    expensesByDateQuery += `
+      WHERE pc.site_id = ? AND pc.desc_id = ?
       GROUP BY DATE_FORMAT(siee.amount_created_at, '%Y-%m-%d')
       ORDER BY expense_date
     `;
+    const expensesByDateParams = [siteId, descId];
 
     const [expensesByDate] = await db.query(expensesByDateQuery, expensesByDateParams);
 
@@ -801,5 +905,252 @@ exports.getActualBudget = async (req, res) => {
     });
   }
 };
+
+
+
+
+// Fetch contractors
+exports.getContractors = async (req, res) => {
+  try {
+    const [contractors] = await db.query("SELECT id, contractor_name FROM contractor");
+    res.status(200).json({ success: true, data: contractors });
+  } catch (error) {
+    console.error("Error fetching contractors:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch contractors" });
+  }
+};
+
+// Save labour data
+exports.addLabour = async (req, res) => {
+  const {
+    full_name, date_of_birth, date_of_joining, company, branch, mobile, company_email,
+    current_address, permanent_address, gender_id, dept_id, emp_type_id, designation_id,
+    status_id, esic_number, pf_number, contractor_id, approved_salary
+  } = req.body;
+
+  // Validate required fields
+  if (!full_name || !date_of_birth || !date_of_joining || !company || !branch || !mobile ||
+      !company_email || !current_address || !permanent_address || !gender_id || !dept_id ||
+      !emp_type_id || !designation_id || !status_id) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing required fields"
+    });
+  }
+
+  try {
+    // Insert into labour table
+    const [result] = await db.query(
+      `INSERT INTO labour (
+        full_name, date_of_birth, date_of_joining, company, branch, mobile, company_email,
+        current_address, permanent_address, gender_id, dept_id, emp_type_id, designation_id,
+        status_id, esic_number, pf_number, contractor_id, approved_salary, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        full_name, date_of_birth, date_of_joining, company, branch, mobile, company_email,
+        current_address, permanent_address, gender_id, dept_id, emp_type_id, designation_id,
+        status_id, esic_number || null, pf_number || null, contractor_id || null,
+        approved_salary || null
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Labour added successfully",
+      data: { id: result.insertId, ...req.body }
+    });
+  } catch (error) {
+    console.error("Error adding labour:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to add labour",
+      error: error.message
+    });
+  }
+};
+
+
+// Fetch all labour employees
+exports.getLabourEmployees = async (req, res) => {
+  try {
+    const [labourEmployees] = await db.query(
+      "SELECT id, full_name, approved_salary FROM labour WHERE status_id = 1"
+    );
+    res.status(200).json({ success: true, data: labourEmployees });
+  } catch (error) {
+    console.error("Error fetching labour employees:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch labour employees" });
+  }
+};
+
+// Save labour assignments
+exports.saveLabourAssignment = async (req, res) => {
+  const {
+    project_id,
+    site_id,
+    desc_id,
+    labour_ids,
+    from_date,
+    to_date,
+    created_by
+  } = req.body;
+
+  if (!project_id || !site_id || !desc_id || !labour_ids || !from_date || !to_date || !created_by) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing required fields"
+    });
+  }
+
+  try {
+    // Get approved_salary for each labour_id
+    const labourIdsString = labour_ids.join(",");
+    const [labourData] = await db.query(
+      `SELECT id, approved_salary FROM labour WHERE id IN (${labourIdsString})`
+    );
+
+    // Create assignment entries
+    const assignments = labourData.map(labour => ({
+      project_id,
+      site_id,
+      desc_id,
+      labour_id: labour.id,
+      salary: labour.approved_salary,
+      from_date,
+      to_date,
+      created_by
+    }));
+
+    // Insert assignments
+    for (const assignment of assignments) {
+      await db.query(
+        `INSERT INTO labour_assignment 
+         (project_id, site_id, desc_id, labour_id, salary, from_date, to_date, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          assignment.project_id,
+          assignment.site_id,
+          assignment.desc_id,
+          assignment.labour_id,
+          assignment.salary,
+          assignment.from_date,
+          assignment.to_date,
+          assignment.created_by
+        ]
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Labour assignments saved successfully"
+    });
+  } catch (error) {
+    console.error("Error saving labour assignments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to save labour assignments",
+      error: error.message
+    });
+  }
+};
+
+
+// Fetch material graph with item names from material_master, dispatched quantities, acknowledged quantities, and used quantities
+exports.materialgraph = async (req, res) => {
+  const { siteId, descId } = req.params;
+
+  try {
+    const [planningRows] = await db.query(
+      `SELECT 
+         ma.item_id, 
+         mm.item_name, 
+         SUM(ma.quantity) AS total_planning,
+         (SELECT SUM(md.dispatch_qty) 
+          FROM material_dispatch md 
+          WHERE md.material_assign_id IN 
+            (SELECT ma2.id FROM material_assign ma2 
+             WHERE ma2.item_id = ma.item_id 
+             AND ma2.site_id = ? AND ma2.desc_id = ?)
+         ) AS total_dispatched,
+         (SELECT SUM(ma_ack.comp_a_qty + ma_ack.comp_b_qty + ma_ack.comp_c_qty) 
+          FROM material_acknowledgement ma_ack
+          JOIN material_dispatch md ON ma_ack.material_dispatch_id = md.id
+          WHERE md.material_assign_id IN 
+            (SELECT ma2.id FROM material_assign ma2 
+             WHERE ma2.item_id = ma.item_id 
+             AND ma2.site_id = ? AND ma2.desc_id = ?)
+         ) AS total_acknowledged,
+         (SELECT SUM(mu.overall_qty) 
+          FROM material_usage mu
+          JOIN material_acknowledgement ma_ack ON mu.material_ack_id = ma_ack.id
+          JOIN material_dispatch md ON ma_ack.material_dispatch_id = md.id
+          WHERE md.material_assign_id IN 
+            (SELECT ma2.id FROM material_assign ma2 
+             WHERE ma2.item_id = ma.item_id 
+             AND ma2.site_id = ? AND ma2.desc_id = ?)
+         ) AS total_used
+       FROM material_assign ma
+       JOIN material_master mm ON ma.item_id = mm.item_id
+       WHERE ma.site_id = ? AND ma.desc_id = ?
+       GROUP BY ma.item_id, mm.item_name`,
+      [siteId, descId, siteId, descId, siteId, descId, siteId, descId]
+    );
+
+    const materialPlanning = planningRows.map(row => ({
+      item_id: row.item_id,
+      item_name: row.item_name || 'Unknown',
+      total_planning: row.total_planning ? parseFloat(parseFloat(row.total_planning).toFixed(2)) : 0,
+      total_dispatched: row.total_dispatched ? parseFloat(parseFloat(row.total_dispatched).toFixed(2)) : 0,
+      total_acknowledged: row.total_acknowledged ? parseFloat(parseFloat(row.total_acknowledged).toFixed(2)) : 0,
+      total_used: row.total_used ? parseFloat(parseFloat(row.total_used).toFixed(2)) : 0
+    }));
+
+    // Additional query for usage history, grouped by entry_date
+    const [historyRows] = await db.query(
+      `SELECT 
+         muh.entry_date,
+         ma.item_id,
+         mm.item_name,
+         SUM(muh.overall_qty) AS overall_qty
+       FROM material_usage_history muh
+       JOIN material_acknowledgement mack ON muh.material_ack_id = mack.id
+       JOIN material_dispatch md ON mack.material_dispatch_id = md.id
+       JOIN material_assign ma ON md.material_assign_id = ma.id
+       JOIN material_master mm ON ma.item_id = mm.item_id
+       WHERE ma.site_id = ? AND ma.desc_id = ?
+       GROUP BY muh.entry_date, ma.item_id, mm.item_name
+       ORDER BY muh.entry_date`,
+      [siteId, descId]
+    );
+
+    const usageHistory = historyRows.map(row => ({
+      entry_date: row.entry_date,
+      item_id: row.item_id,
+      item_name: row.item_name || 'Unknown',
+      overall_qty: row.overall_qty ? parseFloat(parseFloat(row.overall_qty).toFixed(2)) : 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        material_planning: materialPlanning,
+        usage_history: usageHistory
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching material graph:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch material graph"
+    });
+  }
+};
+
+
+
+
+
+
+
 
 module.exports = exports;

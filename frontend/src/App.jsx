@@ -11,6 +11,9 @@ import POMasterCreation from './pages/contract/POMasterCreation';
 import POMasterMain from './pages/contract/POMasterMain';
 import WorkForcePlanning from './pages/contract/WorkForcePlanning';
 import ProjectProjection from './pages/contract/ProjectProjection';
+import AdditionalCash from './pages/contract/AdditionalCash';
+import DashboardMain from './pages/dashboard/DashBoardMain';
+import EmployeeDetails from './pages/contract/EmployeeDetails';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
@@ -29,7 +32,14 @@ const App = () => {
         {/* App shell for all other routes */}
         <Route element={<AppLayout />}>
           {/* Dashboard (use a different path than "/" now) */}
-          <Route path="/admin/dashboard/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Dashboard" /></ProtectedRoute>} />
+          <Route 
+            path="/admin/dashboard/:encodedUserId" 
+            element={
+              <ProtectedRoute role="admin">
+                <DashboardMain />
+              </ProtectedRoute>
+            } 
+          />
           
           <Route path="/admin/dashboard/reports/:encodedUserId" element={<ProtectedRoute role="admin"><Placeholder title="Dashboard Reports" /></ProtectedRoute>} />
 
@@ -95,6 +105,24 @@ const App = () => {
               element={
                 <ProtectedRoute role="admin">
                   <MaterialDispatch />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/admin/contracts/projects/employee-details/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <EmployeeDetails />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/admin/contracts/projects/additional-cash/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <AdditionalCash />
                 </ProtectedRoute>
               } 
           />

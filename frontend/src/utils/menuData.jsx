@@ -19,6 +19,8 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  IdCardLanyard,
+  Coins,
 } from 'lucide-react'; // tree-shakable with Vite [8]
 
 const encodedUserId = localStorage.getItem("encodedUserId");
@@ -42,7 +44,7 @@ export const sidebarConfig = {
       icon: LayoutDashboard,
       items: [
         { label: 'Summary', to: `/admin/dashboard/${encodedUserId}`, icon: ListCollapse },
-        { label: 'Reports', to: `/admin/dashboard/reports/${encodedUserId}`, icon: FileText },
+        // { label: 'Reports', to: `/admin/dashboard/reports/${encodedUserId}`, icon: FileText },
       ],
     },
   ],
@@ -64,6 +66,8 @@ export const sidebarConfig = {
         { label: 'Work Force Planning', to: `/admin/contracts/projects/work-force-planning/${encodedUserId}`, icon: Users },
         { label: 'Material Planning', to: `/admin/contracts/projects/material-planning/${encodedUserId}`, icon: Boxes },
         { label: 'Material Dispatch', to: `/admin/contracts/projects/material-dispatch/${encodedUserId}`, icon: Truck },
+        { label: 'Employee Details', to: `/admin/contracts/projects/employee-details/${encodedUserId}`, icon: IdCardLanyard },
+        { label: 'Additional Cash', to: `/admin/contracts/projects/additional-cash/${encodedUserId}`, icon: Coins },
 
       ],
       // accordion: {
@@ -84,9 +88,9 @@ export const sidebarConfig = {
       title: 'Inventory',
       icon: Boxes,
       items: [
-        { label: 'Stock', to: '/supply/stock', icon: Boxes },
-        { label: 'Vendors', to: '/supply/vendors', icon: Users },
-        { label: 'Purchase Orders', to: '/supply/po', icon: FileText },
+        { label: 'Material Supply', to: '/supply/stock', icon: Boxes },
+        // { label: 'Vendors', to: '/supply/vendors', icon: Users },
+        // { label: 'Purchase Orders', to: '/supply/po', icon: FileText },
       ],
     },
   ],
@@ -96,8 +100,8 @@ export const sidebarConfig = {
       icon: IndianRupee,
       items: [
         { label: 'Invoices', to: '/finance/invoices', icon: FileText },
-        { label: 'Payments', to: '/finance/payments', icon: IndianRupee },
-        { label: 'Reports', to: '/finance/reports', icon: ListCollapse },
+        // { label: 'Payments', to: '/finance/payments', icon: IndianRupee },
+        // { label: 'Reports', to: '/finance/reports', icon: ListCollapse },
       ],
     },
   ],
@@ -106,9 +110,9 @@ export const sidebarConfig = {
       title: 'Resources',
       icon: SwatchBook,
       items: [
-        { label: 'Staff', to: '/resources/staff', icon: Users },
+        // { label: 'Staff', to: '/resources/staff', icon: Users },
         { label: 'Assign', to: '/resources/assign', icon: ClipboardList },
-        { label: 'Utilization', to: '/resources/utilization', icon: ListCollapse },
+        // { label: 'Utilization', to: '/resources/utilization', icon: ListCollapse },
       ],
     },
   ],

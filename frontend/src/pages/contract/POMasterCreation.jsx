@@ -1,20 +1,36 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Plus, ChevronDown, ChevronUp, Save, Eye, Edit } from "lucide-react";
+import { 
+  Plus, 
+  ChevronDown, 
+  ChevronUp, 
+  Save, 
+  Eye, 
+  Edit,
+  Building2,
+  MapPin,
+  Calendar,
+  User,
+  Settings,
+  FileText,
+  Trash2,
+  Check,
+  X
+} from "lucide-react";
 
 const getRandomColor = (index) => {
   const colors = [
-    "bg-blue-50 border-blue-200",
-    "bg-green-50 border-green-200",
-    "bg-yellow-50 border-yellow-200",
-    "bg-purple-50 border-purple-200",
-    "bg-pink-50 border-pink-200",
-    "bg-indigo-50 border-indigo-200",
-    "bg-teal-50 border-teal-200",
-    "bg-orange-50 border-orange-200",
-    "bg-cyan-50 border-cyan-200",
-    "bg-amber-50 border-amber-200",
+    "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+    "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+    "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200",
+    "bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200",
+    "bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200",
+    "bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200",
+    "bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200",
+    "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200",
+    "bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-200",
+    "bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200",
   ];
   return colors[index % colors.length];
 };
@@ -42,7 +58,7 @@ const initialFormData = {
   ],
 };
 
-const SearchableDropdown = ({ options, value, onChange, placeholder, disabled, isLoading }) => {
+const SearchableDropdown = ({ options, value, onChange, placeholder, disabled, isLoading, onCreate }) => {
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState(options);
@@ -84,6 +100,18 @@ const SearchableDropdown = ({ options, value, onChange, placeholder, disabled, i
     setIsOpen(false);
   };
 
+  const handleCreate = async () => {
+    if (onCreate && searchTerm && !filteredOptions.some(opt => opt.name.toLowerCase() === searchTerm.toLowerCase())) {
+      try {
+        await onCreate(searchTerm);
+        setSearchTerm("");
+        setIsOpen(false);
+      } catch (error) {
+        console.error("Error creating new option:", error);
+      }
+    }
+  };
+
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <input
@@ -92,24 +120,33 @@ const SearchableDropdown = ({ options, value, onChange, placeholder, disabled, i
         onChange={handleSearch}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
+        className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white hover:bg-slate-50 transition-all duration-200"
         disabled={disabled || isLoading}
       />
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <div
                 key={option.id}
-                className="px-3 py-2 text-sm cursor-pointer hover:bg-indigo-100"
+                className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
                 onClick={() => handleSelect(option)}
               >
                 {option.name}
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
-              No options found
+            <div className="px-4 py-3 text-sm text-slate-500">
+              {onCreate && searchTerm ? (
+                <button
+                  onClick={handleCreate}
+                  className="w-full text-left hover:text-blue-600 transition-colors duration-200"
+                >
+                  + Create "{searchTerm}"
+                </button>
+              ) : (
+                "No options found"
+              )}
             </div>
           )}
         </div>
@@ -139,15 +176,26 @@ const SearchableClientDropdown = ({
     );
   }, [searchTerm, options]);
 
+  // Reset search term when value changes externally
+  useEffect(() => {
+    if (!value || !searchTerm) {
+      setSearchTerm("");
+    }
+  }, [value]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
+        // Reset search term when closing if no value is selected
+        if (!value) {
+          setSearchTerm("");
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [value]);
 
   const handleSearch = (e) => {
     const term = e.target.value;
@@ -157,42 +205,55 @@ const SearchableClientDropdown = ({
 
   const handleSelect = (option) => {
     onChange(option.company_id);
-    setSearchTerm("");
+    setSearchTerm(option.company_name); // Set the display name
     setIsOpen(false);
+  };
+
+  const getCurrentDisplayValue = () => {
+    if (searchTerm) {
+      return searchTerm;
+    }
+    if (value) {
+      const selectedOption = options.find((opt) => opt.company_id === value);
+      return selectedOption ? selectedOption.company_name : "";
+    }
+    return "";
   };
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <input
         type="text"
-        value={
-          searchTerm ||
-          (value
-            ? options.find((opt) => opt.company_id === value)?.company_name || ""
-            : "")
-        }
+        value={getCurrentDisplayValue()}
         onChange={handleSearch}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
+        className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white hover:bg-slate-50 transition-all duration-200"
         disabled={disabled || isLoading}
       />
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {filteredOptions.map((option) => (
-            <div
-              key={option.company_id}
-              className="px-3 py-2 text-sm cursor-pointer hover:bg-indigo-100"
-              onClick={() => handleSelect(option)}
-            >
-              {option.company_name}
+        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option) => (
+              <div
+                key={option.company_id}
+                className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
+                onClick={() => handleSelect(option)}
+              >
+                {option.company_name}
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-slate-500">
+              No clients found
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
   );
 };
+
 
 const POMasterCreation = ({
   onShowCompanyModal,
@@ -241,9 +302,21 @@ const POMasterCreation = ({
     type_name: "",
   });
 
-  useEffect(() => {
-    setSelectedCompanyId(selectedCompany || "");
-  }, [selectedCompany]);
+useEffect(() => {
+  setSelectedCompanyId(selectedCompany || "");
+  
+  // Reset form and related states when selectedCompany prop changes
+  if (selectedCompany !== selectedCompanyId) {
+    setFormData({ ...initialFormData });
+    setSites([]);
+    setSiteReckonerData({});
+    setExpandedSite(null);
+    setEditingSiteId(null);
+    setCreatingReckonerSiteId(null);
+    setOpenCategories({ 0: true });
+  }
+}, [selectedCompany]);
+
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -478,13 +551,29 @@ const POMasterCreation = ({
     }
   };
 
-  const handleCompanyChange = (value) => {
-    setSelectedCompanyId(value);
+ const handleCompanyChange = (value) => {
+  // Reset all related states when company changes
+  setSelectedCompanyId(value);
+  setFormData({ ...initialFormData });
+  setSites([]);
+  setSiteReckonerData({});
+  setExpandedSite(null);
+  setEditingSiteId(null);
+  setCreatingReckonerSiteId(null);
+  setOpenCategories({ 0: true });
+
+  // Save to localStorage
+  if (value) {
     localStorage.setItem("selectedCompanyId", value);
-    if (onCompanySelect) {
-      onCompanySelect(value);
-    }
-  };
+  } else {
+    localStorage.removeItem("selectedCompanyId");
+  }
+
+  // Call parent callback if provided
+  if (onCompanySelect) {
+    onCompanySelect(value);
+  }
+};
 
   const handleToggleSite = (siteId) => {
     const isExpanding = expandedSite !== siteId;
@@ -1078,13 +1167,30 @@ const POMasterCreation = ({
   };
 
   return (
-    <div className="flex justify-center items-start min-h-screen bg-gray-50">
-      <div className="container w-full mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Master PO Creation</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Master PO Creation
+              </h1>
+              <p className="text-slate-600 text-sm mt-1">
+                Create and manage project work orders
+              </p>
+            </div>
+          </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="w-full sm:w-7/12">
-              <label className="text-sm font-semibold text-gray-700 mb-1 block">Select Client</label>
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-slate-700 mb-2 block flex items-center gap-2">
+                <Building2 size={16} />
+                Select Client
+              </label>
               <SearchableClientDropdown
                 options={companies}
                 value={selectedCompanyId}
@@ -1094,724 +1200,755 @@ const POMasterCreation = ({
                 isLoading={loading.companies}
               />
             </div>
-            <div className="w-full sm:w-3/12 flex items-end">
+
+            
+{selectedCompanyId && (
+            <div className="lg:w-auto flex items-end">
+
+              <button
+                onClick={() => handleCompanyChange("")}
+                className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-xl transition-colors duration-200 flex items-center gap-2"
+              >
+                <X size={16} />
+                Clear Selection
+              </button>
+            </div>
+            )} 
+          
+         
+            <div className="lg:w-auto flex items-end">
               <button
                 onClick={onShowProjectModal}
-                className="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200"
+                className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
                 disabled={!selectedCompanyId}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus size={18} className="group-hover:rotate-90 transition-transform duration-200" />
                 Create Site
               </button>
             </div>
           </div>
+        </div>
 
-          {selectedCompanyId && sites.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Sites for Selected Client</h2>
-              <div className="space-y-4">
-                {sites.map((site) => (
+        {/* Sites Section */}
+        {selectedCompanyId && sites.length > 0 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                <MapPin className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">Sites for Selected Client</h2>
+              <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                {sites.length} sites
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {sites.map((site, index) => (
+                <div
+                  key={site.site_id}
+                  className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                >
                   <div
-                    key={site.site_id}
-                    className="border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+                    className="flex justify-between items-center p-6 bg-gradient-to-r from-slate-50 to-slate-100 cursor-pointer hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-slate-200"
+                    onClick={() => handleToggleSite(site.site_id)}
                   >
-                    <div
-                      className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => handleToggleSite(site.site_id)}
-                    >
-                      <div className="flex items-center space-x-6">
-                        <span className="font-medium text-gray-900 text-base">{site.site_name}</span>
-                        <span className="text-gray-600 text-base">PO: {site.po_number}</span>
-                        <span className="text-gray-800 text-base">Cost Center: {site.project_name}</span>
-                      </div>
-                      {expandedSite === site.site_id ? (
-                        <ChevronUp className="w-5 h-5 text-gray-600" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-600" />
-                      )}
-                    </div>
-                    {expandedSite === site.site_id && (
-                      <div className="p-6 bg-white space-y-8">
-                        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
-                          <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">Site Details</h3>
-                            {editingSiteId !== site.site_id && (
-                              <button
-                                onClick={() => handleEditSite(site.site_id)}
-                                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                              >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit Site Details
-                              </button>
-                            )}
+                    <div className="flex items-center space-x-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-semibold text-sm shadow-lg">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-900 text-lg">{site.site_name}</span>
+                          <div className="flex items-center gap-4 mt-1">
+                            <span className="text-slate-600 text-sm flex items-center gap-1">
+                              <FileText size={14} />
+                              PO: {site.po_number}
+                            </span>
+                            <span className="text-slate-800 text-sm flex items-center gap-1">
+                              <Building2 size={14} />
+                              Cost Center: {site.project_name}
+                            </span>
                           </div>
-                          {editingSiteId === site.site_id ? (
-                            <>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Site Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    name="site_name"
-                                    value={editSiteData.site_name}
-                                    onChange={handleEditSiteChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
-                                    required
-                                  />
+                        </div>
+                      </div>
+                    </div>
+                    <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors duration-200">
+                      {expandedSite === site.site_id ? (
+                        <ChevronUp className="w-6 h-6 text-slate-600" />
+                      ) : (
+                        <ChevronDown className="w-6 h-6 text-slate-600" />
+                      )}
+                    </button>
+                  </div>
+
+                  {expandedSite === site.site_id && (
+                    <div className="p-6 space-y-6">
+                      {/* Site Details Section */}
+                      <div className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200 shadow-inner">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <Building2 className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-800">Site Details</h3>
+                          </div>
+                          {editingSiteId !== site.site_id && (
+                            <button
+                              onClick={() => handleEditSite(site.site_id)}
+                              className="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                            >
+                              <Edit className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-200" />
+                              Edit Site Details
+                            </button>
+                          )}
+                        </div>
+
+                        {editingSiteId === site.site_id ? (
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  Site Name
+                                </label>
+                                <input
+                                  type="text"
+                                  name="site_name"
+                                  value={editSiteData.site_name}
+                                  onChange={handleEditSiteChange}
+                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  PO Number
+                                </label>
+                                <input
+                                  type="text"
+                                  name="po_number"
+                                  value={editSiteData.po_number}
+                                  onChange={handleEditSiteChange}
+                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  Start Date
+                                </label>
+                                <input
+                                  type="date"
+                                  name="start_date"
+                                  value={formatDateForInput(editSiteData.start_date)}
+                                  onChange={handleEditSiteChange}
+                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  End Date
+                                </label>
+                                <input
+                                  type="date"
+                                  name="end_date"
+                                  value={formatDateForInput(editSiteData.end_date)}
+                                  onChange={handleEditSiteChange}
+                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  Incharge Type
+                                </label>
+                                <SearchableDropdown
+                                  options={inchargeTypes}
+                                  value={editSiteData.incharge_type}
+                                  onChange={(value, id) =>
+                                    handleDropdownChange("incharge_type", "incharge_id", value, id)
+                                  }
+                                  placeholder="Select incharge type"
+                                  disabled={loading.inchargeTypes}
+                                  isLoading={loading.inchargeTypes}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  Location
+                                </label>
+                                <SearchableDropdown
+                                  options={locations}
+                                  value={editSiteData.location_name}
+                                  onChange={(value, id) =>
+                                    handleDropdownChange("location_name", "location_id", value, id)
+                                  }
+                                  placeholder="Select location"
+                                  disabled={loading.locations}
+                                  isLoading={loading.locations}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                  PO Type
+                                </label>
+                                <SearchableDropdown
+                                  options={reckonerTypes}
+                                  value={editSiteData.type_name}
+                                  onChange={(value, id) =>
+                                    handleDropdownChange("type_name", "reckoner_type_id", value, id)
+                                  }
+                                  placeholder="Select PO type"
+                                  disabled={loading.reckonerTypes}
+                                  isLoading={loading.reckonerTypes}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                              <button
+                                onClick={() => setEditingSiteId(null)}
+                                className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-xl transition-colors duration-200"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleUpdateSite(site.site_id)}
+                                className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium rounded-xl transition-colors duration-200 shadow-lg"
+                                disabled={loading.submitting}
+                              >
+                                {loading.submitting ? "Updating..." : "Update Site"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {[
+                              { label: "Site Name", value: site.site_name, icon: Building2 },
+                              { label: "PO Number", value: site.po_number, icon: FileText },
+                              { label: "Start Date", value: site.start_date ? new Date(site.start_date).toLocaleDateString() : "N/A", icon: Calendar },
+                              { label: "End Date", value: site.end_date ? new Date(site.end_date).toLocaleDateString() : "N/A", icon: Calendar },
+                              { label: "Incharge Type", value: site.incharge_type || "N/A", icon: User },
+                              { label: "Location", value: site.location_name || "N/A", icon: MapPin },
+                              { label: "PO Type", value: site.type_name || "N/A", icon: Settings },
+                            ].map((item, idx) => (
+                              <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-200">
+                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wide font-medium mb-2">
+                                  <item.icon size={12} />
+                                  {item.label}
                                 </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    PO Number
-                                  </label>
-                                  <input
-                                    type="text"
-                                    name="po_number"
-                                    value={editSiteData.po_number}
-                                    onChange={handleEditSiteChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
-                                    required
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Start Date
-                                  </label>
-                                  <input
-                                    type="date"
-                                    name="start_date"
-                                    value={formatDateForInput(editSiteData.start_date)}
-                                    onChange={handleEditSiteChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    End Date
-                                  </label>
-                                  <input
-                                    type="date"
-                                    name="end_date"
-                                    value={formatDateForInput(editSiteData.end_date)}
-                                    onChange={handleEditSiteChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Incharge Type
-                                  </label>
-                                  <SearchableDropdown
-                                    options={inchargeTypes}
-                                    value={editSiteData.incharge_type}
-                                    onChange={(value, id) =>
-                                      handleDropdownChange("incharge_type", "incharge_id", value, id)
-                                    }
-                                    placeholder="Select incharge type"
-                                    disabled={loading.inchargeTypes}
-                                    isLoading={loading.inchargeTypes}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Location
-                                  </label>
-                                  <SearchableDropdown
-                                    options={locations}
-                                    value={editSiteData.location_name}
-                                    onChange={(value, id) =>
-                                      handleDropdownChange("location_name", "location_id", value, id)
-                                    }
-                                    placeholder="Select location"
-                                    disabled={loading.locations}
-                                    isLoading={loading.locations}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    PO Type
-                                  </label>
-                                  <SearchableDropdown
-                                    options={reckonerTypes}
-                                    value={editSiteData.type_name}
-                                    onChange={(value, id) =>
-                                      handleDropdownChange("type_name", "reckoner_type_id", value, id)
-                                    }
-                                    placeholder="Select PO type"
-                                    disabled={loading.reckonerTypes}
-                                    isLoading={loading.reckonerTypes}
-                                  />
+                                <div className="text-slate-800 font-medium text-sm">
+                                  {item.value}
                                 </div>
                               </div>
-                              <div className="mt-6 flex justify-end space-x-3">
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Work Descriptions Section */}
+                      <div className="bg-gradient-to-r from-slate-50 to-purple-50 p-6 rounded-xl border border-slate-200 shadow-inner">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <FileText className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-slate-800">Work Descriptions</h3>
+                        </div>
+
+                        {siteReckonerData[site.site_id]?.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
+                                <tr>
+                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                    Category
+                                  </th>
+                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                    Description
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {siteReckonerData[site.site_id].map((item, index) => (
+                                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                      {item.category_name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                      {item.desc_name}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : creatingReckonerSiteId === site.site_id ? (
+                          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className="p-2 bg-indigo-100 rounded-lg">
+                                <Plus className="w-5 h-5 text-indigo-600" />
+                              </div>
+                              <h4 className="text-lg font-semibold text-slate-700">
+                                Create Reckoner for {site.site_name}
+                              </h4>
+                            </div>
+                            
+                            <form onSubmit={handleSubmit} className="space-y-8">
+                              <input type="hidden" name="poNumber" value={formData.poNumber} />
+                              <input type="hidden" name="siteId" value={formData.siteId} />
+
+                              <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                      <FileText className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <h2 className="text-xl font-semibold text-slate-800">Categories</h2>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={addCategory}
+                                    className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                  >
+                                    <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+                                    Add Category
+                                  </button>
+                                </div>
+
+                                {formData.categories.map((category, categoryIndex) => (
+                                  <div
+                                    key={categoryIndex}
+                                    className={`border-2 rounded-2xl p-6 space-y-6 ${getRandomColor(categoryIndex)} shadow-lg hover:shadow-xl transition-all duration-300`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                        <div>
+                                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Category Name
+                                          </label>
+                                          <SearchableDropdown
+                                            options={categories.map((cat) => ({
+                                              id: cat.category_id,
+                                              name: cat.category_name,
+                                            }))}
+                                            value={category.categoryName}
+                                            onChange={(value, id) => handleCategoryChange(categoryIndex, value)}
+                                            onCreate={async (name) => {
+                                              const newCategory = await handleCreateCategory(name);
+                                              if (newCategory) {
+                                                handleCategoryChange(categoryIndex, newCategory.category_name);
+                                              }
+                                            }}
+                                            placeholder="Search or add category"
+                                            disabled={loading.categories}
+                                            isLoading={loading.categories}
+                                          />
+                                        </div>
+                                        <div className="flex items-end justify-end">
+                                          {formData.categories.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => removeCategory(categoryIndex)}
+                                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                            >
+                                              <Trash2 className="w-4 h-4 mr-2" />
+                                              Remove Category
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleCategory(categoryIndex)}
+                                        className="ml-4 p-3 rounded-xl hover:bg-white/50 transition-colors duration-200 shadow-md"
+                                        aria-label={
+                                          openCategories[categoryIndex]
+                                            ? "Collapse Category"
+                                            : "Expand Category"
+                                        }
+                                      >
+                                        {openCategories[categoryIndex] ? (
+                                          <ChevronUp className="w-5 h-5 text-slate-600" />
+                                        ) : (
+                                          <ChevronDown className="w-5 h-5 text-slate-600" />
+                                        )}
+                                      </button>
+                                    </div>
+
+                                    {openCategories[categoryIndex] && category.categoryName && (
+                                      <div className="space-y-6 mt-6 transition-all duration-300">
+                                        <div className="flex items-center gap-3">
+                                          <div className="p-2 bg-indigo-100 rounded-lg">
+                                            <Settings className="w-4 h-4 text-indigo-600" />
+                                          </div>
+                                          <h3 className="text-lg font-semibold text-slate-700">Items</h3>
+                                        </div>
+                                        
+                                        <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                                          <table className="min-w-full divide-y divide-slate-200">
+                                            <thead className={`${getRandomColor(categoryIndex + 1)} border-b border-slate-200`}>
+                                              <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Item No
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Description
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Qty
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  UOM
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Rate
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Value
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                  Actions
+                                                </th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-slate-100">
+                                              {category.items.map((item, itemIndex) => (
+                                                <React.Fragment key={itemIndex}>
+                                                  <tr className={itemIndex % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <input
+                                                        type="text"
+                                                        name="itemNo"
+                                                        value={item.itemNo}
+                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
+                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                        required
+                                                        placeholder="Item No"
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 w-[250px] whitespace-nowrap">
+                                                      <SearchableDropdown
+                                                        options={workItems.map((item) => ({
+                                                          id: item.desc_id,
+                                                          name: item.desc_name,
+                                                        }))}
+                                                        value={item.descName}
+                                                        onChange={(value) => handleItemDescriptionChange(categoryIndex, itemIndex, value)}
+                                                        onCreate={async (name) => {
+                                                          const newWorkItem = await handleCreateWorkItem(name);
+                                                          if (newWorkItem) {
+                                                            handleItemDescriptionChange(categoryIndex, itemIndex, newWorkItem.desc_name);
+                                                          }
+                                                        }}
+                                                        placeholder="Search or add description"
+                                                        disabled={loading.workItems}
+                                                        isLoading={loading.workItems}
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <input
+                                                        type="number"
+                                                        name="poQuantity"
+                                                        value={item.poQuantity}
+                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
+                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                        required
+                                                        min="0"
+                                                        step="0.01"
+                                                        placeholder="Qty"
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <input
+                                                        type="text"
+                                                        name="unitOfMeasure"
+                                                        value={item.unitOfMeasure}
+                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
+                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                        required
+                                                        placeholder="UOM"
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <input
+                                                        type="number"
+                                                        name="rate"
+                                                        value={item.rate}
+                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
+                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                        required
+                                                        min="0"
+                                                        step="1"
+                                                        placeholder="Rate"
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <input
+                                                        type="text"
+                                                        name="value"
+                                                        value={item.value}
+                                                        readOnly
+                                                        className="block w-full rounded-lg border-slate-300 shadow-sm p-2 border bg-slate-100 text-sm"
+                                                      />
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => removeItemRow(categoryIndex, itemIndex)}
+                                                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-200 disabled:opacity-50"
+                                                        disabled={category.items.length <= 1}
+                                                      >
+                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                        Remove
+                                                      </button>
+                                                    </td>
+                                                  </tr>
+                                                  <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
+                                                    <td colSpan="7" className="px-4 py-4">
+                                                      <div className="mb-4">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                          <label className="block text-sm font-semibold text-slate-700">
+                                                            Select Subcategories
+                                                          </label>
+                                                          <div className="flex items-center gap-2">
+                                                            <input
+                                                              type="text"
+                                                              value={newSubcategory}
+                                                              onChange={(e) => setNewSubcategory(e.target.value)}
+                                                              placeholder="Add subcategory"
+                                                              className="rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                            />
+                                                            {newSubcategory && (
+                                                              <button
+                                                                type="button"
+                                                                onClick={() => handleCreateSubcategory(categoryIndex, itemIndex)}
+                                                                className="inline-flex items-center p-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg"
+                                                              >
+                                                                <Save className="w-4 h-4" />
+                                                              </button>
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                        <div className="max-h-32 overflow-y-auto border border-slate-300 rounded-xl p-3 bg-white shadow-inner">
+                                                          {subcategories
+                                                            .reduce((acc, subcat, index) => {
+                                                              const chunkIndex = Math.floor(index / 7);
+                                                              if (!acc[chunkIndex]) {
+                                                                acc[chunkIndex] = [];
+                                                              }
+                                                              acc[chunkIndex].push(subcat);
+                                                              return acc;
+                                                            }, [])
+                                                            .map((chunk, chunkIndex) => (
+                                                              <div
+                                                                key={`chunk-${chunkIndex}`}
+                                                                className="flex flex-wrap mb-2"
+                                                              >
+                                                                {chunk.map((subcat) => (
+                                                                  <div
+                                                                    key={subcat.subcategory_id}
+                                                                    className="flex items-center mb-2 w-1/4 pr-4"
+                                                                  >
+                                                                    <input
+                                                                      type="checkbox"
+                                                                      id={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
+                                                                      checked={item.subcategories.some(
+                                                                        (sc) => sc.subcategoryId === subcat.subcategory_id
+                                                                      )}
+                                                                      onChange={(e) =>
+                                                                        handleSubcategorySelection(
+                                                                          categoryIndex,
+                                                                          itemIndex,
+                                                                          subcat.subcategory_id,
+                                                                          e.target.checked
+                                                                        )
+                                                                      }
+                                                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                                                                      disabled={loading.subcategories || !item.descName}
+                                                                    />
+                                                                    <label
+                                                                      htmlFor={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
+                                                                      className="ml-2 text-sm text-slate-700 truncate"
+                                                                    >
+                                                                      {subcat.subcategory_name}
+                                                                    </label>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                        </div>
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                  {item.subcategories.length > 0 && (
+                                                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                                                      <td colSpan="7" className="px-4 py-4">
+                                                        <div className="mb-2">
+                                                          <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                                            <Settings className="w-4 h-4" />
+                                                            Subcategory Details
+                                                          </h4>
+                                                          <table className="min-w-full divide-y divide-slate-200 bg-white rounded-lg shadow-sm border border-slate-200">
+                                                            <thead className="bg-gradient-to-r from-slate-200 to-slate-100">
+                                                              <tr>
+                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                                  Subcategory
+                                                                </th>
+                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                                  Qty
+                                                                </th>
+                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                                  Rate
+                                                                </th>
+                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                                                  Value
+                                                                </th>
+                                                              </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-slate-100">
+                                                              {item.subcategories.map((subcat, subcatIndex) => (
+                                                                <tr
+                                                                  key={subcatIndex}
+                                                                  className={subcatIndex % 2 === 0 ? "bg-white" : "bg-slate-50/50"}
+                                                                >
+                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 font-medium">
+                                                                    {subcat.subcategoryName}
+                                                                  </td>
+                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
+                                                                    {subcat.poQuantity}
+                                                                  </td>
+                                                                  <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <input
+                                                                      type="number"
+                                                                      value={subcat.rate}
+                                                                      onChange={(e) =>
+                                                                        handleSubcategoryRateChange(
+                                                                          categoryIndex,
+                                                                          itemIndex,
+                                                                          subcatIndex,
+                                                                          e
+                                                                        )
+                                                                      }
+                                                                      className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
+                                                                      min="0"
+                                                                      step="1"
+                                                                    />
+                                                                  </td>
+                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700 font-mono">
+                                                                    {subcat.value}
+                                                                  </td>
+                                                                </tr>
+                                                              ))}
+                                                            </tbody>
+                                                          </table>
+                                                        </div>
+                                                      </td>
+                                                    </tr>
+                                                  )}
+                                                </React.Fragment>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+
+                                        <div className="mt-6">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => addItemRow(categoryIndex, e)}
+                                            className="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                                          >
+                                            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+                                            Add Item
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="pt-8 flex justify-end space-x-4 border-t border-slate-200">
                                 <button
-                                  onClick={() => setEditingSiteId(null)}
-                                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium rounded-md transition-colors duration-200"
+                                  type="button"
+                                  onClick={() => setCreatingReckonerSiteId(null)}
+                                  className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-xl transition-colors duration-200"
                                 >
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={() => handleUpdateSite(site.site_id)}
-                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                                  disabled={loading.submitting}
+                                  type="submit"
+                                  className="inline-flex justify-center items-center py-3 px-8 border border-transparent shadow-lg text-sm font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-green-200 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                  disabled={isSubmitDisabled()}
                                 >
-                                  {loading.submitting ? "Updating..." : "Update Site"}
+                                  {loading.submitting ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                      Submitting...
+                                    </>
+                                  ) : loading.processing ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                      Processing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check className="w-4 h-4 mr-2" />
+                                      Submit
+                                    </>
+                                  )}
                                 </button>
                               </div>
-                            </>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Site Name:</p>
-                                <p className="text-sm text-gray-900">{site.site_name}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">PO Number:</p>
-                                <p className="text-sm text-gray-900">{site.po_number}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Start Date:</p>
-                                <p className="text-sm text-gray-900">
-                                  {site.start_date ? new Date(site.start_date).toLocaleDateString() : "N/A"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">End Date:</p>
-                                <p className="text-sm text-gray-900">
-                                  {site.end_date ? new Date(site.end_date).toLocaleDateString() : "N/A"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Incharge Type:</p>
-                                <p className="text-sm text-gray-900">{site.incharge_type || "N/A"}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Location:</p>
-                                <p className="text-sm text-gray-900">{site.location_name || "N/A"}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">PO Type:</p>
-                                <p className="text-sm text-gray-900">{site.type_name || "N/A"}</p>
-                              </div>
+                            </form>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                            <div className="p-4 bg-red-100 rounded-2xl">
+                              <X className="w-8 h-8 text-red-500" />
                             </div>
-                          )}
-                        </div>
-
-                        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">Work Descriptions</h3>
-                          {siteReckonerData[site.site_id]?.length > 0 ? (
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg shadow-sm">
-                                <thead className="bg-indigo-50">
-                                  <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">
-                                      Category
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">
-                                      Description
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                  {siteReckonerData[site.site_id].map((item, index) => (
-                                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {item.category_name}
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                        {item.desc_name}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ) : creatingReckonerSiteId === site.site_id ? (
-                            <div>
-                              <h4 className="text-md font-semibold text-gray-700 mb-4">
-                                Create Reckoner for {site.site_name}
-                              </h4>
-                              <form onSubmit={handleSubmit} className="space-y-6">
-                                <input type="hidden" name="poNumber" value={formData.poNumber} />
-                                <input type="hidden" name="siteId" value={formData.siteId} />
-
-                                <div className="space-y-6">
-                                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <h2 className="text-xl font-semibold text-gray-800">Categories</h2>
-                                    <button
-                                      type="button"
-                                      onClick={addCategory}
-                                      className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200"
-                                    >
-                                      <Plus className="w-4 h-4 mr-2" />
-                                      Add Category
-                                    </button>
-                                  </div>
-
-                                  {formData.categories.map((category, categoryIndex) => (
-                                    <div
-                                      key={categoryIndex}
-                                      className={`border rounded-lg p-4 space-y-4 ${getRandomColor(
-                                        categoryIndex
-                                      )} border-2 shadow-sm transition-all duration-300`}
-                                    >
-                                      <div className="flex justify-between items-center">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                                          <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                              Category Name
-                                            </label>
-                                            <SearchableDropdown
-                                              options={categories.map((cat) => ({
-                                                id: cat.category_id,
-                                                name: cat.category_name,
-                                              }))}
-                                              value={category.categoryName}
-                                              onChange={(value, id) =>
-                                                handleCategoryChange(categoryIndex, value)
-                                              }
-                                              onCreate={async (name) => {
-                                                const newCategory = await handleCreateCategory(name);
-                                                if (newCategory) {
-                                                  handleCategoryChange(categoryIndex, newCategory.category_name);
-                                                }
-                                              }}
-                                              placeholder="Search or add category"
-                                              disabled={loading.categories}
-                                              isLoading={loading.categories}
-                                            />
-                                          </div>
-                                          <div className="flex items-end justify-end">
-                                            {formData.categories.length > 1 && (
-                                              <button
-                                                type="button"
-                                                onClick={() => removeCategory(categoryIndex)}
-                                                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-200"
-                                              >
-                                                Remove Category
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleCategory(categoryIndex)}
-                                          className="ml-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
-                                          aria-label={
-                                            openCategories[categoryIndex]
-                                              ? "Collapse Category"
-                                              : "Expand Category"
-                                          }
-                                        >
-                                          {openCategories[categoryIndex] ? (
-                                            <ChevronUp className="w-5 h-5 text-gray-600" />
-                                          ) : (
-                                            <ChevronDown className="w-5 h-5 text-gray-600" />
-                                          )}
-                                        </button>
-                                      </div>
-
-                                      {openCategories[categoryIndex] && category.categoryName && (
-                                        <div className="space-y-6 mt-4 transition-all duration-300">
-                                          <h3 className="text-md font-semibold text-gray-700">Items</h3>
-                                          <div className="overflow-x-auto">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                              <thead className={`${getRandomColor(categoryIndex + 1)}`}>
-                                                <tr>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Item No
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Description
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Qty
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    UOM
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Rate
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Value
-                                                  </th>
-                                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                    Actions
-                                                  </th>
-                                                </tr>
-                                              </thead>
-                                              <tbody className="bg-white divide-y divide-gray-200">
-                                                {category.items.map((item, itemIndex) => (
-                                                  <React.Fragment key={itemIndex}>
-                                                    <tr
-                                                      className={itemIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                                                    >
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <input
-                                                          type="text"
-                                                          name="itemNo"
-                                                          value={item.itemNo}
-                                                          onChange={(e) =>
-                                                            handleItemChange(categoryIndex, itemIndex, e)
-                                                          }
-                                                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-                                                          required
-                                                          placeholder="Item No"
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 w-[250px] whitespace-nowrap">
-                                                        <SearchableDropdown
-                                                          options={workItems.map((item) => ({
-                                                            id: item.desc_id,
-                                                            name: item.desc_name,
-                                                          }))}
-                                                          value={item.descName}
-                                                          onChange={(value) =>
-                                                            handleItemDescriptionChange(
-                                                              categoryIndex,
-                                                              itemIndex,
-                                                              value
-                                                            )
-                                                          }
-                                                          onCreate={async (name) => {
-                                                            const newWorkItem = await handleCreateWorkItem(name);
-                                                            if (newWorkItem) {
-                                                              handleItemDescriptionChange(
-                                                                categoryIndex,
-                                                                itemIndex,
-                                                                newWorkItem.desc_name
-                                                              );
-                                                            }
-                                                          }}
-                                                          placeholder="Search or add description"
-                                                          disabled={loading.workItems}
-                                                          isLoading={loading.workItems}
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <input
-                                                          type="number"
-                                                          name="poQuantity"
-                                                          value={item.poQuantity}
-                                                          onChange={(e) =>
-                                                            handleItemChange(categoryIndex, itemIndex, e)
-                                                          }
-                                                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-                                                          required
-                                                          min="0"
-                                                          step="0.01"
-                                                          placeholder="Qty"
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <input
-                                                          type="text"
-                                                          name="unitOfMeasure"
-                                                          value={item.unitOfMeasure}
-                                                          onChange={(e) =>
-                                                            handleItemChange(categoryIndex, itemIndex, e)
-                                                          }
-                                                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-                                                          required
-                                                          placeholder="UOM"
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <input
-                                                          type="number"
-                                                          name="rate"
-                                                          value={item.rate}
-                                                          onChange={(e) =>
-                                                            handleItemChange(categoryIndex, itemIndex, e)
-                                                          }
-                                                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-                                                          required
-                                                          min="0"
-                                                          step="1"
-                                                          placeholder="Rate"
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <input
-                                                          type="text"
-                                                          name="value"
-                                                          value={item.value}
-                                                          readOnly
-                                                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border bg-gray-100 text-sm"
-                                                        />
-                                                      </td>
-                                                      <td className="px-3 py-2 whitespace-nowrap">
-                                                        <button
-                                                          type="button"
-                                                          onClick={() => removeItemRow(categoryIndex, itemIndex)}
-                                                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-200 disabled:opacity-50"
-                                                          disabled={category.items.length <= 1}
-                                                        >
-                                                          Remove
-                                                        </button>
-                                                      </td>
-                                                    </tr>
-                                                    <tr className="bg-gray-100">
-                                                      <td colSpan="7" className="px-3 py-2">
-                                                        <div className="mb-2">
-                                                          <div className="flex items-center justify-between mb-2">
-                                                            <label className="block text-sm font-semibold text-gray-700">
-                                                              Select Subcategories
-                                                            </label>
-                                                            <div className="flex items-center">
-                                                              <input
-                                                                type="text"
-                                                                value={newSubcategory}
-                                                                onChange={(e) => setNewSubcategory(e.target.value)}
-                                                                placeholder="Add subcategory"
-                                                                className="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm mr-2"
-                                                              />
-                                                              {newSubcategory && (
-                                                                <button
-                                                                  type="button"
-                                                                  onClick={() =>
-                                                                    handleCreateSubcategory(categoryIndex, itemIndex)
-                                                                  }
-                                                                  className="inline-flex items-center p-2 text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
-                                                                >
-                                                                  <Save className="w-4 h-4" />
-                                                                </button>
-                                                              )}
-                                                            </div>
-                                                          </div>
-                                                          <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white">
-                                                            {subcategories
-                                                              .reduce((acc, subcat, index) => {
-                                                                const chunkIndex = Math.floor(index / 7);
-                                                                if (!acc[chunkIndex]) {
-                                                                  acc[chunkIndex] = [];
-                                                                }
-                                                                acc[chunkIndex].push(subcat);
-                                                                return acc;
-                                                              }, [])
-                                                              .map((chunk, chunkIndex) => (
-                                                                <div
-                                                                  key={`chunk-${chunkIndex}`}
-                                                                  className="flex flex-wrap mb-2"
-                                                                >
-                                                                  {chunk.map((subcat) => (
-                                                                    <div
-                                                                      key={subcat.subcategory_id}
-                                                                      className="flex items-center mb-1 w-1/4 pr-4"
-                                                                    >
-                                                                      <input
-                                                                        type="checkbox"
-                                                                        id={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
-                                                                        checked={item.subcategories.some(
-                                                                          (sc) =>
-                                                                            sc.subcategoryId === subcat.subcategory_id
-                                                                        )}
-                                                                        onChange={(e) =>
-                                                                          handleSubcategorySelection(
-                                                                            categoryIndex,
-                                                                            itemIndex,
-                                                                            subcat.subcategory_id,
-                                                                            e.target.checked
-                                                                          )
-                                                                        }
-                                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                                                        disabled={loading.subcategories || !item.descName}
-                                                                      />
-                                                                      <label
-                                                                        htmlFor={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
-                                                                        className="ml-2 text-sm text-gray-700 truncate"
-                                                                      >
-                                                                        {subcat.subcategory_name}
-                                                                      </label>
-                                                                    </div>
-                                                                  ))}
-                                                                </div>
-                                                              ))}
-                                                          </div>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                    {item.subcategories.length > 0 && (
-                                                      <tr className="bg-gray-50">
-                                                        <td colSpan="7" className="px-3 py-2">
-                                                          <div className="mb-2">
-                                                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                                              Subcategory Details
-                                                            </h4>
-                                                            <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg shadow-sm">
-                                                              <thead className="bg-gray-200">
-                                                                <tr>
-                                                                  <th className="px-3 py-1 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                    Subcategory
-                                                                  </th>
-                                                                  <th className="px-3 py-1 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                    Qty
-                                                                  </th>
-                                                                  <th className="px-3 py-1 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                    Rate
-                                                                  </th>
-                                                                  <th className="px-3 py-1 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                    Value
-                                                                  </th>
-                                                                </tr>
-                                                              </thead>
-                                                              <tbody className="divide-y divide-gray-200">
-                                                                {item.subcategories.map((subcat, subcatIndex) => (
-                                                                  <tr
-                                                                    key={subcatIndex}
-                                                                    className={
-                                                                      subcatIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                                                    }
-                                                                  >
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                                                      {subcat.subcategoryName}
-                                                                    </td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                                                                      {subcat.poQuantity}
-                                                                    </td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap">
-                                                                      <input
-                                                                        type="number"
-                                                                        value={subcat.rate}
-                                                                        onChange={(e) =>
-                                                                          handleSubcategoryRateChange(
-                                                                            categoryIndex,
-                                                                            itemIndex,
-                                                                            subcatIndex,
-                                                                            e
-                                                                          )
-                                                                        }
-                                                                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-1 border text-sm"
-                                                                        min="0"
-                                                                        step="1"
-                                                                      />
-                                                                    </td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                                                                      {subcat.value}
-                                                                    </td>
-                                                                  </tr>
-                                                                ))}
-                                                              </tbody>
-                                                            </table>
-                                                          </div>
-                                                        </td>
-                                                      </tr>
-                                                    )}
-                                                  </React.Fragment>
-                                                ))}
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                          <div className="mt-4">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => addItemRow(categoryIndex, e)}
-                                              className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200"
-                                            >
-                                              <Plus className="w-4 h-4 mr-2" />
-                                              Add Item
-                                            </button>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-
-                                <div className="pt-6 flex justify-end space-x-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => setCreatingReckonerSiteId(null)}
-                                    className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium rounded-md transition-colors duration-200"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={isSubmitDisabled()}
-                                  >
-                                    {loading.submitting ? (
-                                      <>
-                                        <svg
-                                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                          ></circle>
-                                          <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                          ></path>
-                                        </svg>
-                                        Submitting...
-                                      </>
-                                    ) : loading.processing ? (
-                                      <>
-                                        <svg
-                                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                          ></circle>
-                                          <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                          ></path>
-                                        </svg>
-                                        Processing...
-                                      </>
-                                    ) : (
-                                      "Submit"
-                                    )}
-                                  </button>
-                                </div>
-                              </form>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-start space-y-4">
-                              <p className="text-sm text-red-600 font-medium">Reckoner Not Created</p>
-                              <button
-                                onClick={() => handleCreateReckoner(site.site_id)}
-                                className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200"
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Create Reckoner
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                            <p className="text-sm text-red-600 font-medium">Reckoner Not Created</p>
+                            <button
+                              onClick={() => handleCreateReckoner(site.site_id)}
+                              className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                            >
+                              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+                              Create Reckoner
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      {/* <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/70 transform transition-all duration-500 animate-slide-in-right">
-        
-      </div> */}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading.sites && (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-blue-600"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-indigo-400 opacity-20 animate-pulse"></div>
+              </div>
+              <p className="text-slate-600 font-medium">Loading sites...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {selectedCompanyId && !loading.sites && sites.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="p-4 bg-slate-100 rounded-2xl">
+                <Building2 className="w-12 h-12 text-slate-400" />
+              </div>
+              <h3 className="text-slate-800 font-semibold text-lg">No sites found</h3>
+              <p className="text-slate-600 text-center">
+                No sites available for the selected client. Create a new site to get started.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
