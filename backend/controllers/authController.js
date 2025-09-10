@@ -33,7 +33,7 @@ exports.login = async (req, res) => {
     // Map role to dashboard path
     const rolePaths = {
       superadmin: `/superadmin/${encodedUserId}`,
-      admin: `/admin/${encodedUserId}`,
+      admin: `/admin/dashboard/${encodedUserId}`,
       "site incharge": `/site-incharge/${encodedUserId}`,
       accounts_team: `/accounts-team/${encodedUserId}`,
     };

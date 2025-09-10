@@ -28,7 +28,7 @@ const ProjectProjection = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:5000/admin/companies");
+      const response = await axios.get("http://103.118.158.127/api/admin/companies");
       if (response.data.success) {
         setCompanies(
           response.data.data.map((company) => ({
@@ -52,7 +52,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/projects/${companyId}`
+        `http://103.118.158.127/api/admin/projects/${companyId}`
       );
       if (response.data.success) {
         setProjects(
@@ -77,7 +77,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/sites/${projectId}`
+        `http://103.118.158.127/api/admin/sites/${projectId}`
       );
       if (response.data.success) {
         setSites(
@@ -102,7 +102,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
+        `http://103.118.158.127/api/admin/work-descriptions-by-site/${siteId}`
       );
       if (response.data.success) {
         setWorkDescriptions(
@@ -127,7 +127,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/po-total-budget/${siteId}/${descId}`
+        `http://103.118.158.127/api/admin/po-total-budget/${siteId}/${descId}`
       );
       if (response.data.success) {
         setBudgetData({
@@ -149,7 +149,7 @@ const ProjectProjection = () => {
   // Check if budget exists for site_id and desc_id
   const checkBudgetExists = async (siteId, descId) => {
     try {
-      const response = await axios.get("http://localhost:5000/admin/po-budget", {
+      const response = await axios.get("http://103.118.158.127/api/admin/po-budget", {
         params: { site_id: siteId, desc_id: descId },
       });
       if (response.data.success && response.data.data) {
@@ -182,7 +182,7 @@ const ProjectProjection = () => {
   // Fetch overheads and initialize actualBudgetEntries
   const fetchOverheads = async (po_budget_id) => {
     try {
-      const response = await axios.get("http://localhost:5000/admin/overheads", {
+      const response = await axios.get("http://103.118.158.127/api/admin/overheads", {
         params: po_budget_id ? { po_budget_id } : {},
       });
       if (response.data.success) {
@@ -247,7 +247,7 @@ const ProjectProjection = () => {
 // Fetch actual budget entries
 const fetchActualBudgetEntries = async (po_budget_id) => {
   try {
-    const response = await axios.get(`http://localhost:5000/admin/actual-budget/${po_budget_id}`);
+    const response = await axios.get(`http://103.118.158.127/api/admin/actual-budget/${po_budget_id}`);
     if (response.data.success) {
       const entries = response.data.data || {};
       // If entries is an object, add edited: true for each
@@ -279,7 +279,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
   // Save budget details to backend
   const savePoBudget = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/admin/save-po-budget", {
+      const response = await axios.post("http://103.118.158.127/api/admin/save-po-budget", {
         site_id: selectedSite.value,
         desc_id: selectedWorkDescription.value,
         total_po_value: budgetData.total_po_value,
@@ -338,7 +338,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
 
     if (expense_name) {
       try {
-        const response = await axios.post("http://localhost:5000/admin/save-overhead", {
+        const response = await axios.post("http://103.118.158.127/api/admin/save-overhead", {
           expense_name,
         });
         if (response.data.success) {
@@ -440,7 +440,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/admin/save-actual-budget", {
+      const response = await axios.post("http://103.118.158.127/api/admin/save-actual-budget", {
         po_budget_id: existingBudget.id,
         actual_budget_entries: entries,
       });

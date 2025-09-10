@@ -31,7 +31,7 @@ const WorkForcePlanning = () => {
   useEffect(() => {
     const fetchProjectsAndSites = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+        const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
         setProjects(response.data || []);
       } catch (err) {
         setError("Failed to fetch projects and sites");
@@ -45,7 +45,7 @@ const WorkForcePlanning = () => {
     const fetchEmployees = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:5000/site-incharge/employees");
+        const response = await axios.get("http://103.118.158.127/api/site-incharge/employees");
         setEmployees(response.data.data || []);
         setError(null);
       } catch (err) {
@@ -73,7 +73,7 @@ const WorkForcePlanning = () => {
       const fetchWorkDescriptions = async () => {
         setLoading(true);
         try {
-          const response = await axios.get(`http://localhost:5000/site-incharge/work-descriptions?site_id=${selectedSite.value}`);
+          const response = await axios.get(`http://103.118.158.127/api/site-incharge/work-descriptions?site_id=${selectedSite.value}`);
           setWorkDescriptions(response.data.data || []);
           setError(null);
         } catch (err) {
@@ -137,7 +137,7 @@ const WorkForcePlanning = () => {
 
         console.log('Sending incharge payload:', inchargePayload);
         const inchargeResponse = await axios.post(
-          "http://localhost:5000/material/assign-incharge", 
+          "http://103.118.158.127/api/material/assign-incharge", 
           inchargePayload
         );
         toast.success(inchargeResponse.data.message || "Site incharges assigned successfully");
@@ -157,7 +157,7 @@ const WorkForcePlanning = () => {
 
         console.log('Sending labour payload:', labourPayload);
         const labourResponse = await axios.post(
-          "http://localhost:5000/site-incharge/save-labour-assignment", 
+          "http://103.118.158.127/api/site-incharge/save-labour-assignment", 
           labourPayload
         );
         toast.success(labourResponse.data.message || "Labours assigned successfully");
