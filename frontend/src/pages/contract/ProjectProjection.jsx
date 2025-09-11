@@ -3,6 +3,7 @@ import axios from "axios";
 import Select from "react-select";
 import Swal from "sweetalert2";
 import { Plus } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
 
 const ProjectProjection = () => {
   const [companies, setCompanies] = useState([]);
@@ -24,11 +25,23 @@ const ProjectProjection = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Call calculate-labour-budget API on component mount
+  useEffect(() => {
+    const callCalculateLabourBudget = async () => {
+      try {
+        await axios.get("http://localhost:5000/site-incharge/calculate-labour-budget");
+      } catch (error) {
+        console.error("Error calling calculate-labour-budget API:", error.message);
+      }
+    };
+    callCalculateLabourBudget();
+  }, []);
+
   // Fetch companies
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/admin/companies");
+      const response = await axios.get("http://localhost:5000/admin/companies");
       if (response.data.success) {
         setCompanies(
           response.data.data.map((company) => ({
@@ -51,9 +64,7 @@ const ProjectProjection = () => {
   const fetchProjects = async (companyId) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://103.118.158.127/api/admin/projects/${companyId}`
-      );
+      const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
       if (response.data.success) {
         setProjects(
           response.data.data.map((project) => ({
@@ -76,9 +87,7 @@ const ProjectProjection = () => {
   const fetchSites = async (projectId) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://103.118.158.127/api/admin/sites/${projectId}`
-      );
+      const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
       if (response.data.success) {
         setSites(
           response.data.data.map((site) => ({
@@ -102,7 +111,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://103.118.158.127/api/admin/work-descriptions-by-site/${siteId}`
+        `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
       );
       if (response.data.success) {
         setWorkDescriptions(
@@ -127,7 +136,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://103.118.158.127/api/admin/po-total-budget/${siteId}/${descId}`
+        `http://localhost:5000/admin/po-total-budget/${siteId}/${descId}`
       );
       if (response.data.success) {
         setBudgetData({
@@ -149,7 +158,7 @@ const ProjectProjection = () => {
   // Check if budget exists for site_id and desc_id
   const checkBudgetExists = async (siteId, descId) => {
     try {
-      const response = await axios.get("http://103.118.158.127/api/admin/po-budget", {
+      const response = await axios.get("http://localhost:5000/admin/po-budget", {
         params: { site_id: siteId, desc_id: descId },
       });
       if (response.data.success && response.data.data) {
@@ -182,7 +191,7 @@ const ProjectProjection = () => {
   // Fetch overheads and initialize actualBudgetEntries
   const fetchOverheads = async (po_budget_id) => {
     try {
-      const response = await axios.get("http://103.118.158.127/api/admin/overheads", {
+      const response = await axios.get("http://localhost:5000/admin/overheads", {
         params: po_budget_id ? { po_budget_id } : {},
       });
       if (response.data.success) {
@@ -190,7 +199,6 @@ const ProjectProjection = () => {
         const initialChecked = {};
         const newEntries = {};
 
-        // Initialize entries for ALL overheads
         response.data.data.forEach((overhead) => {
           initialChecked[overhead.id] = overhead.is_default === 1;
           newEntries[overhead.id] = {
@@ -204,7 +212,6 @@ const ProjectProjection = () => {
 
         setCheckedExpenses(initialChecked);
 
-        // Initialize splitted_budget for checked expenses
         if (existingBudget && existingBudget.total_budget_value) {
           const checkedIds = Object.keys(initialChecked)
             .filter((id) => initialChecked[id])
@@ -222,7 +229,6 @@ const ProjectProjection = () => {
               extraAssigned += assignedValue;
             });
 
-            // Adjust last checked entry to match total exactly
             const lastCheckedId = checkedIds[checkedIds.length - 1];
             if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
               newEntries[lastCheckedId].splitted_budget = (
@@ -244,42 +250,40 @@ const ProjectProjection = () => {
   };
 
   // Fetch actual budget entries
-// Fetch actual budget entries
-const fetchActualBudgetEntries = async (po_budget_id) => {
-  try {
-    const response = await axios.get(`http://103.118.158.127/api/admin/actual-budget/${po_budget_id}`);
-    if (response.data.success) {
-      const entries = response.data.data || {};
-      // If entries is an object, add edited: true for each
-      const processedEntries = {};
-      Object.keys(entries).forEach((overheadId) => {
-        processedEntries[overheadId] = {
-          ...entries[overheadId],
-          edited: true,
-        };
-      });
-      setActualBudgetEntries(processedEntries);
-      setIsAllocated(Object.keys(processedEntries).length > 0);
-      // Set checkedExpenses based on fetched entries if allocated
-      if (Object.keys(processedEntries).length > 0) {
-        const checked = {};
-        Object.keys(processedEntries).forEach((id) => {
-          checked[id] = true;
+  const fetchActualBudgetEntries = async (po_budget_id) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/admin/actual-budget/${po_budget_id}`);
+      if (response.data.success) {
+        const entries = response.data.data || {};
+        const processedEntries = {};
+        Object.keys(entries).forEach((overheadId) => {
+          processedEntries[overheadId] = {
+            ...entries[overheadId],
+            edited: true,
+          };
         });
-        setCheckedExpenses(checked);
+        setActualBudgetEntries(processedEntries);
+        setIsAllocated(Object.keys(processedEntries).length > 0);
+        if (Object.keys(processedEntries).length > 0) {
+          const checked = {};
+          Object.keys(processedEntries).forEach((id) => {
+            checked[id] = true;
+          });
+          setCheckedExpenses(checked);
+        }
+      } else {
+        setError(response.data.message || "Failed to fetch actual budget entries.");
       }
-    } else {
-      setError(response.data.message || "Failed to fetch actual budget entries.");
+    } catch (error) {
+      console.error("Error fetching actual budget entries:", error);
+      setError("Failed to load actual budget entries. Please try again.");
     }
-  } catch (error) {
-    console.error("Error fetching actual budget entries:", error);
-    setError("Failed to load actual budget entries. Please try again.");
-  }
-};
+  };
+
   // Save budget details to backend
   const savePoBudget = async () => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/admin/save-po-budget", {
+      const response = await axios.post("http://localhost:5000/admin/save-po-budget", {
         site_id: selectedSite.value,
         desc_id: selectedWorkDescription.value,
         total_po_value: budgetData.total_po_value,
@@ -338,7 +342,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
 
     if (expense_name) {
       try {
-        const response = await axios.post("http://103.118.158.127/api/admin/save-overhead", {
+        const response = await axios.post("http://localhost:5000/admin/save-overhead", {
           expense_name,
         });
         if (response.data.success) {
@@ -440,7 +444,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
     }
 
     try {
-      const response = await axios.post("http://103.118.158.127/api/admin/save-actual-budget", {
+      const response = await axios.post("http://localhost:5000/admin/save-actual-budget", {
         po_budget_id: existingBudget.id,
         actual_budget_entries: entries,
       });
@@ -570,7 +574,6 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
       }
 
       const newEntries = { ...actualBudgetEntries };
-      // Initialize entries for all overheads to prevent undefined errors
       overheads.forEach((overhead) => {
         if (!newEntries[overhead.id]) {
           newEntries[overhead.id] = {
@@ -594,11 +597,10 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
         checkedIds.forEach((expenseId, idx) => {
           const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
           newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
-          newEntries[expenseId].edited = false; // Reset edited flag
+          newEntries[expenseId].edited = false;
           extraAssigned += assignedValue;
         });
 
-        // Adjust last checked entry to match total exactly
         const lastCheckedId = checkedIds[checkedIds.length - 1];
         if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
           newEntries[lastCheckedId].splitted_budget = (
@@ -607,7 +609,6 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
           ).toFixed(2);
         }
 
-        // Set null for unchecked expenses
         Object.keys(newChecked).forEach((expenseId) => {
           if (!newChecked[expenseId]) {
             newEntries[expenseId].splitted_budget = null;
@@ -623,7 +624,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
 
   // Handle budgeted value change
   const handleSplittedBudgetChange = (id, value) => {
-    const parsedValue = value ? Math.floor(parseFloat(value)) : 0; // Enforce integer input
+    const parsedValue = value ? Math.floor(parseFloat(value)) : 0;
     if (parsedValue < 0) {
       Swal.fire({
         icon: "error",
@@ -658,7 +659,6 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
     setActualBudgetEntries((prev) => {
       const newEntries = { ...prev };
 
-      // Initialize entries for all overheads to prevent undefined errors
       overheads.forEach((overhead) => {
         if (!newEntries[overhead.id]) {
           newEntries[overhead.id] = {
@@ -671,14 +671,12 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
         }
       });
 
-      // Update current entry
       newEntries[id] = {
         ...newEntries[id],
         splitted_budget: parsedValue.toFixed(2),
         edited: true,
       };
 
-      // Calculate sum of all current values except subsequent unedited ones
       const uneditedSubsequentIds = checkedIds
         .slice(currentIndex + 1)
         .filter((expenseId) => !newEntries[expenseId]?.edited);
@@ -693,7 +691,6 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
       const remainingBudget = Math.round((existingBudget.total_budget_value - currentSum) * 100) / 100;
 
       if (currentIndex < checkedIds.length - 1 && uneditedSubsequentIds.length > 0) {
-        // Split remaining budget among subsequent unedited entries
         const splitCount = uneditedSubsequentIds.length;
         const splitValue = Math.floor(remainingBudget / splitCount);
         const remainder = Math.round((remainingBudget - splitValue * splitCount) * 100) / 100;
@@ -705,7 +702,9 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
             Swal.fire({
               icon: "error",
               title: "Error",
-              text: `Adjusted value for ${overheads.find(o => o.id === expenseId)?.expense_name || 'expense'} would be negative (${assignedValue.toFixed(2)}).`,
+              text: `Adjusted value for ${
+                overheads.find((o) => o.id === expenseId)?.expense_name || "expense"
+              } would be negative (${assignedValue.toFixed(2)}).`,
               confirmButtonColor: "#4f46e5",
               timer: 3000,
               timerProgressBar: true,
@@ -716,15 +715,17 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
           extraAssigned += assignedValue;
         });
 
-        // Adjust last unedited subsequent entry
         const lastSubsequentId = uneditedSubsequentIds[uneditedSubsequentIds.length - 1];
         if (lastSubsequentId && extraAssigned !== remainingBudget) {
-          const adjustedValue = parseFloat(newEntries[lastSubsequentId].splitted_budget) + (remainingBudget - extraAssigned);
+          const adjustedValue =
+            parseFloat(newEntries[lastSubsequentId].splitted_budget) + (remainingBudget - extraAssigned);
           if (adjustedValue < 0) {
             Swal.fire({
               icon: "error",
               title: "Error",
-              text: `Adjusted value for ${overheads.find(o => o.id === lastSubsequentId)?.expense_name || 'expense'} would be negative (${adjustedValue.toFixed(2)}).`,
+              text: `Adjusted value for ${
+                overheads.find((o) => o.id === lastSubsequentId)?.expense_name || "expense"
+              } would be negative (${adjustedValue.toFixed(2)}).`,
               confirmButtonColor: "#4f46e5",
               timer: 3000,
               timerProgressBar: true,
@@ -734,8 +735,9 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
           newEntries[lastSubsequentId].splitted_budget = adjustedValue.toFixed(2);
         }
       } else {
-        // Adjust first unedited checked record
-        const uneditedIds = checkedIds.filter((expenseId) => !newEntries[expenseId]?.edited && expenseId !== parseInt(id));
+        const uneditedIds = checkedIds.filter(
+          (expenseId) => !newEntries[expenseId]?.edited && expenseId !== parseInt(id)
+        );
         const targetId = uneditedIds.length > 0 ? uneditedIds[0] : checkedIds[0];
         if (targetId && targetId !== parseInt(id)) {
           const newAdjustedValue = (parseFloat(newEntries[targetId].splitted_budget) || 0) + remainingBudget;
@@ -743,7 +745,9 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
             Swal.fire({
               icon: "error",
               title: "Error",
-              text: `Adjusted value for ${overheads.find(o => o.id === targetId)?.expense_name || 'first expense'} would be negative (${newAdjustedValue.toFixed(2)}).`,
+              text: `Adjusted value for ${
+                overheads.find((o) => o.id === targetId)?.expense_name || "first expense"
+              } would be negative (${newAdjustedValue.toFixed(2)}).`,
               confirmButtonColor: "#4f46e5",
               timer: 3000,
               timerProgressBar: true,
@@ -912,6 +916,42 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
     }
   }, [existingBudget]);
 
+  // Calculate chart data for total budget, actual, and balance
+  const chartData = existingBudget && actualBudgetEntries
+    ? (() => {
+        const budgetedValue = Object.values(actualBudgetEntries)
+          .filter((entry) => entry.splitted_budget !== null)
+          .reduce((sum, entry) => sum + parseFloat(entry.splitted_budget || 0), 0);
+        const actualValue = Object.values(actualBudgetEntries)
+          .filter((entry) => entry.actual_value !== null)
+          .reduce((sum, entry) => sum + parseFloat(entry.actual_value || 0), 0);
+        const balanceValue = budgetedValue - actualValue; // Total Budgeted - Total Actual
+
+        return [
+          { name: "Budgeted Value", value: budgetedValue, fill: "#92c352" },
+          { name: "Actual Value", value: actualValue, fill: "#40A4DF" },
+          { name: "Balance", value: Math.abs(balanceValue), fill: balanceValue < 0 ? "#C84D4D" : "#f0af0a" },
+        ];
+      })()
+    : [];
+
+  // Calculate chart data for individual expenses (Budgeted vs Actual)
+  const expenseChartData = overheads
+    .filter((overhead) =>
+      isAllocated ? actualBudgetEntries[overhead.id]?.splitted_budget !== null : true
+    )
+    .map((overhead) => {
+      const budgeted = parseFloat(actualBudgetEntries[overhead.id]?.splitted_budget) || 0;
+      const actual = parseFloat(actualBudgetEntries[overhead.id]?.actual_value) || 0;
+      const actualExceedsBudget = actual > budgeted;
+      return {
+        name: overhead.expense_name,
+        budgeted: budgeted,
+        actual: actual,
+        actualFill: actualExceedsBudget ? "#C84D4D" : "#40A4DF",
+      };
+    });
+
   return (
     <div className="p-4 sm:p-6 bg-white rounded-xl shadow-lg border border-gray-200">
       <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-6">
@@ -1020,7 +1060,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
                   </tbody>
                 </table>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
                 <div className="p-4 bg-indigo-50 rounded-lg shadow-sm w-full sm:w-1/3">
                   <h3 className="text-lg font-medium text-gray-800">
                     Total PO Value
@@ -1029,49 +1069,68 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
                     Rs.{budgetData.total_po_value.toFixed(2)}
                   </p>
                 </div>
-                <div className="flex flex-col gap-4 w-full sm:w-2/3">
-                  {existingBudget ? (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-sm font-medium text-gray-700">
-                        Budget Percentage: {budgetPercentage}%
-                      </p>
-                      <p className="text-sm font-medium text-gray-700">
-                        Budget Value: Rs.{budgetValue}
-                      </p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-2/3 items-start">
+                  <div className="flex flex-col gap-2 w-full sm:w-1/2">
+                    {existingBudget ? (
+                      <>
+                        <p className="text-sm font-medium text-gray-700">
+                          Budget Percentage: {budgetPercentage}%
+                        </p>
+                        <p className="text-sm font-medium text-gray-700">
+                          Budget Value: Rs.{budgetValue}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Budget Percentage (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            max="100"
+                            value={budgetPercentage}
+                            onChange={handleBudgetPercentageChange}
+                            placeholder="Enter percentage (0-100)"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Budget Value (Rs.)
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            max={budgetData ? budgetData.total_po_value : undefined}
+                            value={budgetValue}
+                            onChange={handleBudgetValueChange}
+                            placeholder="Enter budget value"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {chartData.length > 0 && (
+                    <div className="w-full sm:w-1/2 h-48">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Overall Budget Summary</h4>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                          <YAxis hide tickFormatter={(value) => `₹${value.toLocaleString("en-IN")}`} />
+                          <Tooltip
+                            formatter={(value) => `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+                            labelStyle={{ fontSize: 12 }}
+                            itemStyle={{ fontSize: 12 }}
+                          />
+                          <Bar dataKey="value" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Budget Percentage (%)
-                        </label>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          max="100"
-                          value={budgetPercentage}
-                          onChange={handleBudgetPercentageChange}
-                          placeholder="Enter percentage (0-100)"
-                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Budget Value (Rs.)
-                        </label>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          max={budgetData ? budgetData.total_po_value : undefined}
-                          value={budgetValue}
-                          onChange={handleBudgetValueChange}
-                          placeholder="Enter budget value"
-                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        />
-                      </div>
-                    </>
                   )}
                 </div>
               </div>
@@ -1120,7 +1179,7 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
                       </th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Budgeted Value (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Actual Value (Rs.)</th>
-                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Difference (Rs.)</th>
+                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Balance (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Remarks</th>
                     </tr>
                   </thead>
@@ -1129,57 +1188,91 @@ const fetchActualBudgetEntries = async (po_budget_id) => {
                       .filter((overhead) =>
                         isAllocated ? actualBudgetEntries[overhead.id]?.splitted_budget !== null : true
                       )
-                      .map((overhead, index) => (
-                        <tr key={overhead.id}>
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">{index + 1}</td>
-                          {!isAllocated && (
-                            <td className="py-2 px-4 border-b text-sm text-gray-800">
-                              <input
-                                type="checkbox"
-                                checked={!!checkedExpenses[overhead.id]}
-                                onChange={() => handleExpenseCheckboxChange(overhead.id)}
-                                disabled={overhead.is_default === 1}
-                              />
-                            </td>
-                          )}
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">{overhead.expense_name}</td>
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">
-                            {isAllocated ? (
-                              actualBudgetEntries[overhead.id]?.splitted_budget || "N/A"
-                            ) : checkedExpenses[overhead.id] ? (
-                              <input
-                                type="number"
-                                step="1"
-                                min="0"
-                                value={
-                                  actualBudgetEntries[overhead.id]?.splitted_budget
-                                    ? Math.floor(parseFloat(actualBudgetEntries[overhead.id].splitted_budget))
-                                    : ""
-                                }
-                                onChange={(e) => handleSplittedBudgetChange(overhead.id, e.target.value)}
-                                className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                placeholder="Enter integer value"
-                              />
-                            ) : (
-                              "N/A"
+                      .map((overhead, index) => {
+                        const budgeted = parseFloat(actualBudgetEntries[overhead.id]?.splitted_budget) || 0;
+                        const actual = parseFloat(actualBudgetEntries[overhead.id]?.actual_value) || 0;
+                        const balance = budgeted - actual; // Budgeted - Actual for each expense
+                        return (
+                          <tr key={overhead.id}>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">{index + 1}</td>
+                            {!isAllocated && (
+                              <td className="py-2 px-4 border-b text-sm text-gray-800">
+                                <input
+                                  type="checkbox"
+                                  checked={!!checkedExpenses[overhead.id]}
+                                  onChange={() => handleExpenseCheckboxChange(overhead.id)}
+                                  disabled={overhead.is_default === 1}
+                                />
+                              </td>
                             )}
-                          </td>
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">
-                            {actualBudgetEntries[overhead.id]?.actual_value || "null"}
-                          </td>
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">
-                            {actualBudgetEntries[overhead.id]?.splitted_budget && actualBudgetEntries[overhead.id]?.actual_value
-                              ? (parseFloat(actualBudgetEntries[overhead.id].splitted_budget) - parseFloat(actualBudgetEntries[overhead.id].actual_value)).toFixed(2)
-                              : "null"}
-                          </td>
-                          <td className="py-2 px-4 border-b text-sm text-gray-800">
-                            {actualBudgetEntries[overhead.id]?.remarks || "null"}
-                          </td>
-                        </tr>
-                      ))}
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">{overhead.expense_name}</td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {isAllocated ? (
+                                actualBudgetEntries[overhead.id]?.splitted_budget || "N/A"
+                              ) : checkedExpenses[overhead.id] ? (
+                                <input
+                                  type="number"
+                                  step="1"
+                                  min="0"
+                                  value={
+                                    actualBudgetEntries[overhead.id]?.splitted_budget
+                                      ? Math.floor(parseFloat(actualBudgetEntries[overhead.id].splitted_budget))
+                                      : ""
+                                  }
+                                  onChange={(e) => handleSplittedBudgetChange(overhead.id, e.target.value)}
+                                  className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  placeholder="Enter integer value"
+                                />
+                              ) : (
+                                "N/A"
+                              )}
+                            </td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {actualBudgetEntries[overhead.id]?.actual_value || "null"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {actualBudgetEntries[overhead.id]?.splitted_budget && actualBudgetEntries[overhead.id]?.actual_value
+                                ? balance.toFixed(2)
+                                : "null"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {actualBudgetEntries[overhead.id]?.remarks || "null"}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
+              {expenseChartData.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Expense Budget vs Actual</h4>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={expenseChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        interval={0}
+                        height={100}
+                      />
+                      <YAxis tickFormatter={(value) => `₹${value.toLocaleString("en-IN")}`} tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        formatter={(value) => `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+                        labelStyle={{ fontSize: 12 }}
+                        itemStyle={{ fontSize: 12 }}
+                      />
+                      <Bar dataKey="budgeted" fill="#92c352" name="Budgeted Value" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="actual" fill="#40A4DF" name="Actual Value" radius={[4, 4, 0, 0]}>
+                        {expenseChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.actualFill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               {!isAllocated && (
                 <button
                   onClick={allocateBudget}

@@ -7,31 +7,32 @@ import { Save, Users, UserCheck, Calendar, Building, HardHat } from "lucide-reac
 import { useParams } from "react-router-dom";
 
 const WorkForcePlanning = () => {
-  const { encodedUserId } = useParams();
+   const { encodedUserId } = useParams();
   const [projects, setProjects] = useState([]);
   const [sites, setSites] = useState([]);
   const [workDescriptions, setWorkDescriptions] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [labourEmployees, setLabourEmployees] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedSite, setSelectedSite] = useState(null);
   const [selectedWorkDesc, setSelectedWorkDesc] = useState(null);
   const [selectedIncharges, setSelectedIncharges] = useState([]);
-  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [selectedLabour, setSelectedLabour] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("incharge"); // "incharge" or "labour"
+  const [activeTab, setActiveTab] = useState("incharge");
 
-  // Separate from/to dates for Incharge/Labour
-  const [inchargeFromDate, setInchargeFromDate] = useState(new Date().toISOString().split('T'));
-  const [inchargeToDate, setInchargeToDate] = useState(new Date().toISOString().split('T'));
-  const [labourFromDate, setLabourFromDate] = useState(new Date().toISOString().split('T'));
-  const [labourToDate, setLabourToDate] = useState(new Date().toISOString().split('T'));
+  // Date states
+  const [inchargeFromDate, setInchargeFromDate] = useState(new Date().toISOString().split("T")[0]);
+  const [inchargeToDate, setInchargeToDate] = useState(new Date().toISOString().split("T")[0]);
+  const [labourFromDate, setLabourFromDate] = useState(new Date().toISOString().split("T")[0]);
+  const [labourToDate, setLabourToDate] = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     const fetchProjectsAndSites = async () => {
       try {
-        const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
+        const response = await axios.get("http://localhost:5000/project/projects-with-sites");
         setProjects(response.data || []);
       } catch (err) {
         setError("Failed to fetch projects and sites");
@@ -42,19 +43,39 @@ const WorkForcePlanning = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true; // Prevent race conditions
+
     const fetchEmployees = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://103.118.158.127/api/site-incharge/employees");
-        setEmployees(response.data.data || []);
-        setError(null);
+        // Fetch regular employees for site incharge
+        const empResponse = await axios.get("http://localhost:5000/site-incharge/employees");
+        if (isMounted) {
+          setEmployees(empResponse.data.data || []);
+        }
+
+        // Fetch labour employees
+        const labourResponse = await axios.get("http://localhost:5000/admin/labour");
+        console.log("Labours fetched:", labourResponse.data); // Debug log
+        if (isMounted) {
+          setLabourEmployees(labourResponse.data.data || []);
+          setError(null);
+        }
       } catch (err) {
-        toast.error("Failed to fetch employees");
+        if (isMounted) {
+          toast.error("Failed to fetch employees or labours");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchEmployees();
+
+    return () => {
+      isMounted = false; // Cleanup
+    };
   }, []);
 
   useEffect(() => {
@@ -64,25 +85,39 @@ const WorkForcePlanning = () => {
       setSelectedSite(null);
       setSelectedWorkDesc(null);
       setSelectedIncharges([]);
-      setSelectedEmployees([]);
+      setSelectedLabour([]);
     }
   }, [selectedProject, projects]);
 
   useEffect(() => {
     if (selectedProject && selectedSite) {
+      let isMounted = true; // Prevent race conditions
+
       const fetchWorkDescriptions = async () => {
         setLoading(true);
         try {
-          const response = await axios.get(`http://103.118.158.127/api/site-incharge/work-descriptions?site_id=${selectedSite.value}`);
-          setWorkDescriptions(response.data.data || []);
-          setError(null);
+          const response = await axios.get(
+            `http://localhost:5000/site-incharge/work-descriptions?site_id=${selectedSite.value}`
+          );
+          if (isMounted) {
+            setWorkDescriptions(response.data.data || []);
+            setError(null);
+          }
         } catch (err) {
-          toast.error("Failed to fetch work descriptions");
+          if (isMounted) {
+            toast.error("Failed to fetch work descriptions");
+          }
         } finally {
-          setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       };
       fetchWorkDescriptions();
+
+      return () => {
+        isMounted = false; // Cleanup
+      };
     }
   }, [selectedProject, selectedSite]);
 
@@ -97,7 +132,7 @@ const WorkForcePlanning = () => {
     }
 
     const hasIncharge = selectedIncharges.length > 0;
-    const hasLabour = selectedEmployees.length > 0;
+    const hasLabour = selectedLabour.length > 0;
 
     if (!hasIncharge && !hasLabour) {
       toast.error("Please select at least one site incharge or labour employees");
@@ -105,16 +140,16 @@ const WorkForcePlanning = () => {
     }
 
     if (!selectedProject || !selectedSite || !selectedWorkDesc) {
-      toast.error("Please fill all required fields: project, site and work description");
+      toast.error("Please fill all required fields: project, site, and work description");
       return;
     }
 
-    // Separate date validations
-    if (hasIncharge && (new Date(inchargeToDate) < new Date(inchargeFromDate))) {
+    // Date validations
+    if (hasIncharge && new Date(inchargeToDate) < new Date(inchargeFromDate)) {
       toast.error("Incharge: To Date must be after From Date");
       return;
     }
-    if (hasLabour && (new Date(labourToDate) < new Date(labourFromDate))) {
+    if (hasLabour && new Date(labourToDate) < new Date(labourFromDate)) {
       toast.error("Labour: To Date must be after From Date");
       return;
     }
@@ -132,12 +167,11 @@ const WorkForcePlanning = () => {
           site_id: selectedSite.value,
           emp_id: emp.value,
           desc_id: selectedWorkDesc.value,
-          created_by: parseInt(user_id)
+          created_by: parseInt(user_id),
         }));
 
-        console.log('Sending incharge payload:', inchargePayload);
         const inchargeResponse = await axios.post(
-          "http://103.118.158.127/api/material/assign-incharge", 
+          "http://localhost:5000/material/assign-incharge",
           inchargePayload
         );
         toast.success(inchargeResponse.data.message || "Site incharges assigned successfully");
@@ -149,15 +183,14 @@ const WorkForcePlanning = () => {
           project_id: selectedProject.value,
           site_id: selectedSite.value,
           desc_id: selectedWorkDesc.value,
-          emp_ids: selectedEmployees.map(emp => emp.value),
+          labour_ids: selectedLabour.map(labour => labour.value),
           from_date: labourFromDate,
           to_date: labourToDate,
-          created_by: parseInt(user_id)
+          created_by: parseInt(user_id),
         };
-
-        console.log('Sending labour payload:', labourPayload);
+        console.log("Labour payload:", labourPayload); // Debug log
         const labourResponse = await axios.post(
-          "http://103.118.158.127/api/site-incharge/save-labour-assignment", 
+          "http://localhost:5000/site-incharge/save-labour-assignment", // Updated to match LabourAssign.jsx
           labourPayload
         );
         toast.success(labourResponse.data.message || "Labours assigned successfully");
@@ -165,9 +198,9 @@ const WorkForcePlanning = () => {
 
       setSelectedWorkDesc(null);
       setSelectedIncharges([]);
-      setSelectedEmployees([]);
+      setSelectedLabour([]);
     } catch (err) {
-      console.error('Error saving assignments:', err.response?.data);
+      console.error("Error saving assignments:", err.response?.data);
       toast.error(err.response?.data?.message || "Failed to save assignments");
     } finally {
       setSubmitting(false);
@@ -176,22 +209,27 @@ const WorkForcePlanning = () => {
 
   const projectOptions = projects.map(project => ({
     value: project.project_id,
-    label: project.project_name
+    label: project.project_name,
   }));
 
   const siteOptions = sites.map(site => ({
     value: site.site_id,
-    label: site.site_name
+    label: site.site_name,
   }));
 
   const workDescOptions = workDescriptions.map(desc => ({
     value: desc.desc_id,
-    label: desc.desc_name
+    label: desc.desc_name,
   }));
 
   const employeeOptions = employees.map(employee => ({
     value: employee.emp_id,
-    label: `${employee.emp_id} - ${employee.full_name}`
+    label: `${employee.emp_id} - ${employee.full_name}`,
+  }));
+
+  const labourOptions = labourEmployees.map(labour => ({
+    value: labour.id,
+    label: labour.full_name,
   }));
 
   return (
@@ -240,11 +278,9 @@ const WorkForcePlanning = () => {
           </div>
 
           {/* Work Description */}
-          {(selectedProject && selectedSite) && (
+          {selectedProject && selectedSite && (
             <div className="bg-blue-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium text-blue-800 mb-2">
-                Work Description
-              </label>
+              <label className="block text-sm font-medium text-blue-800 mb-2">Work Description</label>
               <Select
                 options={workDescOptions}
                 value={selectedWorkDesc}
@@ -264,14 +300,18 @@ const WorkForcePlanning = () => {
           {/* Tab Selection */}
           <div className="flex border-b border-gray-200 mt-6">
             <button
-              className={`py-3 px-5 font-medium flex items-center ${activeTab === "incharge" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`py-3 px-5 font-medium flex items-center ${
+                activeTab === "incharge" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
+              }`}
               onClick={() => setActiveTab("incharge")}
             >
               <UserCheck size={18} className="mr-2" />
               Assign Site Incharge
             </button>
             <button
-              className={`py-3 px-5 font-medium flex items-center ${activeTab === "labour" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`py-3 px-5 font-medium flex items-center ${
+                activeTab === "labour" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
+              }`}
               onClick={() => setActiveTab("labour")}
             >
               <Users size={18} className="mr-2" />
@@ -293,7 +333,7 @@ const WorkForcePlanning = () => {
                     <input
                       type="date"
                       value={inchargeFromDate}
-                      onChange={(e) => setInchargeFromDate(e.target.value)}
+                      onChange={e => setInchargeFromDate(e.target.value)}
                       className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -305,15 +345,13 @@ const WorkForcePlanning = () => {
                     <input
                       type="date"
                       value={inchargeToDate}
-                      onChange={(e) => setInchargeToDate(e.target.value)}
+                      onChange={e => setInchargeToDate(e.target.value)}
                       className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
                 <div className="mb-4 flex justify-between items-center">
-                  <label className="block text-sm font-medium text-blue-800">
-                    Select Site Incharge(s)
-                  </label>
+                  <label className="block text-sm font-medium text-blue-800">Select Site Incharge(s)</label>
                   <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                     {inchargeFromDate} to {inchargeToDate}
                   </div>
@@ -348,7 +386,7 @@ const WorkForcePlanning = () => {
                       <input
                         type="date"
                         value={labourFromDate}
-                        onChange={(e) => setLabourFromDate(e.target.value)}
+                        onChange={e => setLabourFromDate(e.target.value)}
                         className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
@@ -360,24 +398,22 @@ const WorkForcePlanning = () => {
                       <input
                         type="date"
                         value={labourToDate}
-                        onChange={(e) => setLabourToDate(e.target.value)}
+                        onChange={e => setLabourToDate(e.target.value)}
                         className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
                   <div className="mb-4 flex justify-between items-center">
-                    <label className="block text-sm font-medium text-blue-800">
-                      Select Labour Employees
-                    </label>
+                    <label className="block text-sm font-medium text-blue-800">Select Labour Employees</label>
                     <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       {labourFromDate} to {labourToDate}
                     </div>
                   </div>
                   <Select
-                    options={employeeOptions}
-                    value={selectedEmployees}
-                    onChange={setSelectedEmployees}
-                    placeholder="Search employees..."
+                    options={labourOptions}
+                    value={selectedLabour}
+                    onChange={setSelectedLabour}
+                    placeholder="Search labour employees..."
                     isSearchable
                     isMulti
                     isDisabled={loading || !selectedProject || !selectedSite || !selectedWorkDesc}
@@ -385,7 +421,7 @@ const WorkForcePlanning = () => {
                     classNamePrefix="react-select"
                   />
                   <p className="text-xs text-blue-600 mt-2">
-                    Select one or more employees to assign as labour
+                    Select one or more labour employees to assign to this site
                   </p>
                 </div>
               </div>
@@ -398,11 +434,9 @@ const WorkForcePlanning = () => {
             Loading data, please wait...
           </div>
         )}
-        
+
         {error && (
-          <div className="text-center py-4 text-sm text-red-600 bg-red-50 rounded-lg">
-            {error}
-          </div>
+          <div className="text-center py-4 text-sm text-red-600 bg-red-50 rounded-lg">{error}</div>
         )}
 
         <button
@@ -411,12 +445,15 @@ const WorkForcePlanning = () => {
           disabled={submitting || !selectedProject || !selectedSite || !selectedWorkDesc}
         >
           <Save size={18} className="mr-2" />
-          {submitting ? 'Processing...' : 'Save Assignments'}
+          {submitting ? "Processing..." : "Save Assignments"}
         </button>
 
         <div className="mt-6 text-center text-xs text-gray-500">
-          <p>Assigning personnel to: {selectedProject?.label || 'No project selected'} / {selectedSite?.label || 'No site selected'}</p>
-          <p className="mt-1">Work: {selectedWorkDesc?.label || 'No work description selected'}</p>
+          <p>
+            Assigning personnel to: {selectedProject?.label || "No project selected"} /{" "}
+            {selectedSite?.label || "No site selected"}
+          </p>
+          <p className="mt-1">Work: {selectedWorkDesc?.label || "No work description selected"}</p>
         </div>
       </div>
 

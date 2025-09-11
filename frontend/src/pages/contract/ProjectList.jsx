@@ -495,7 +495,7 @@ const ProjectList = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header Section */}
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Master For Primary Management</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Project List For Primary Management</h1>
             <p className="mt-2 text-sm sm:text-base text-gray-600">
               Track and manage your project progress seamlessly
             </p>
@@ -573,7 +573,7 @@ const ProjectList = () => {
                 )}
               </div>
             </div>
-            <div className="flex gap-4">
+            {/* <div className="flex gap-4">
               <button
                 onClick={() => setShowAssignIncharge(true)}
                 className="px-4 py-3 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all flex items-center text-sm sm:text-base font-medium"
@@ -595,7 +595,7 @@ const ProjectList = () => {
                 <Truck className="h-5 w-5 mr-2" />
                 Material Dispatch
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Action: Assigned Incharges */}
