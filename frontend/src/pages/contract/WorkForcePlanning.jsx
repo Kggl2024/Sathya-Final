@@ -32,7 +32,7 @@ const WorkForcePlanning = () => {
   useEffect(() => {
     const fetchProjectsAndSites = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+        const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
         setProjects(response.data || []);
       } catch (err) {
         setError("Failed to fetch projects and sites");
@@ -49,13 +49,13 @@ const WorkForcePlanning = () => {
       setLoading(true);
       try {
         // Fetch regular employees for site incharge
-        const empResponse = await axios.get("http://localhost:5000/site-incharge/employees");
+        const empResponse = await axios.get("http://103.118.158.127/api/site-incharge/employees");
         if (isMounted) {
           setEmployees(empResponse.data.data || []);
         }
 
         // Fetch labour employees
-        const labourResponse = await axios.get("http://localhost:5000/admin/labour");
+        const labourResponse = await axios.get("http://103.118.158.127/api/admin/labour");
         console.log("Labours fetched:", labourResponse.data); // Debug log
         if (isMounted) {
           setLabourEmployees(labourResponse.data.data || []);
@@ -97,7 +97,7 @@ const WorkForcePlanning = () => {
         setLoading(true);
         try {
           const response = await axios.get(
-            `http://localhost:5000/site-incharge/work-descriptions?site_id=${selectedSite.value}`
+            `http://103.118.158.127/api/site-incharge/work-descriptions?site_id=${selectedSite.value}`
           );
           if (isMounted) {
             setWorkDescriptions(response.data.data || []);
@@ -171,7 +171,7 @@ const WorkForcePlanning = () => {
         }));
 
         const inchargeResponse = await axios.post(
-          "http://localhost:5000/material/assign-incharge",
+          "http://103.118.158.127/api/material/assign-incharge",
           inchargePayload
         );
         toast.success(inchargeResponse.data.message || "Site incharges assigned successfully");
@@ -190,7 +190,7 @@ const WorkForcePlanning = () => {
         };
         console.log("Labour payload:", labourPayload); // Debug log
         const labourResponse = await axios.post(
-          "http://localhost:5000/site-incharge/save-labour-assignment", // Updated to match LabourAssign.jsx
+          "http://103.118.158.127/api/site-incharge/save-labour-assignment", // Updated to match LabourAssign.jsx
           labourPayload
         );
         toast.success(labourResponse.data.message || "Labours assigned successfully");
