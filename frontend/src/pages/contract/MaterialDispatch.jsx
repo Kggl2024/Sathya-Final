@@ -139,14 +139,18 @@ const SearchableDropdown = ({ options, selectedValue, onSelect, placeholder, sea
 };
 
 const MaterialDispatch = () => {
+  const [allProjects, setAllProjects] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [sites, setSites] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [nextDcNo, setNextDcNo] = useState("");
   const [assignedMaterials, setAssignedMaterials] = useState([]);
   const [groupedMaterials, setGroupedMaterials] = useState({});
   const [loading, setLoading] = useState({
+    companies: false,
     projects: false,
     sites: false,
     dcNo: false,
@@ -189,50 +193,39 @@ const MaterialDispatch = () => {
   const [remarks, setRemarks] = useState({});
   const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
 
-  // Fetch projects
+  // Fetch companies
+  const fetchCompanies = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, companies: true }));
+      const response = await axios.get("http://localhost:5000/project/companies");
+      setCompanies(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      setError("Failed to load companies. Please try again.");
+    } finally {
+      setLoading((prev) => ({ ...prev, companies: false }));
+    }
+  };
+
+  // Fetch projects with sites
   const fetchProjects = async () => {
     try {
       setLoading((prev) => ({ ...prev, projects: true }));
-      const response = await axios.get("http://localhost:5000/material/projects");
-      setProjects(response.data.data || []);
-      if (response.data.data.length > 0 && !selectedProject) {
-        setSelectedProject(response.data.data[0].pd_id);
+      const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+      const projectsData = Array.isArray(response.data) ? response.data : [];
+      setAllProjects(projectsData);
+      if (projectsData.length > 0 && selectedCompany) {
+        const filteredProjects = projectsData.filter((project) => project.company_id === selectedCompany);
+        setProjects(filteredProjects);
+        if (filteredProjects.length > 0 && !selectedProject) {
+          setSelectedProject(filteredProjects[0].project_id);
+        }
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
       setError("Failed to load projects. Please try again.");
     } finally {
       setLoading((prev) => ({ ...prev, projects: false }));
-    }
-  };
-
-  // Fetch sites
-  const fetchSites = async (pd_id) => {
-    try {
-      setLoading((prev) => ({ ...prev, sites: true }));
-      const response = await axios.get(`http://localhost:5000/material/sites/${pd_id}`);
-      setSites(response.data.data || []);
-      if (response.data.data.length > 0 && !selectedSite) {
-        setSelectedSite(response.data.data[0].site_id);
-        setDispatchData((prev) => ({
-          ...prev,
-          order_no: response.data.data[0].po_number || "",
-        }));
-      }
-      // Set vendor_code based on selected project
-      const selectedProjectData = projects.find((project) => project.pd_id === pd_id);
-      if (selectedProjectData) {
-        setDispatchData((prev) => ({
-          ...prev,
-          vendor_code: selectedProjectData.vendor_code || "",
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching sites:", error);
-      setError("Failed to load sites. Please try again.");
-      setSites([]);
-    } finally {
-      setLoading((prev) => ({ ...prev, sites: false }));
     }
   };
 
@@ -380,10 +373,11 @@ const MaterialDispatch = () => {
     }
   };
 
-  // Handle project selection
-  const handleProjectChange = async (e) => {
-    const pd_id = e.target.value;
-    setSelectedProject(pd_id);
+  // Handle company selection
+  const handleCompanyChange = (e) => {
+    const company_id = e.target.value;
+    setSelectedCompany(company_id);
+    setSelectedProject("");
     setSelectedSite("");
     setSites([]);
     setAssignedMaterials([]);
@@ -411,8 +405,51 @@ const MaterialDispatch = () => {
     });
     setError(null);
     setIsTransportModalOpen(false);
-    if (pd_id) {
-      await fetchSites(pd_id);
+  };
+
+  // Handle project selection
+  const handleProjectChange = (e) => {
+    const project_id = e.target.value;
+    setSelectedProject(project_id);
+    setSelectedSite("");
+    setSites([]);
+    setAssignedMaterials([]);
+    setGroupedMaterials({});
+    setCalculatedQuantities({});
+    setRemarks({});
+    setNextDcNo("");
+    setDispatchData({ dc_no: "", dispatch_date: "", order_no: "", vendor_code: "" });
+    setTransportData({
+      transport_type_id: "",
+      provider_id: "",
+      vehicle_id: "",
+      driver_id: "",
+      destination: "",
+      booking_expense: "",
+      travel_expense: "",
+    });
+    setNewEntryData({
+      vehicle_model: "",
+      vehicle_number: "",
+      driver_mobile: "",
+      driver_address: "",
+      provider_address: "",
+      provider_mobile: "",
+    });
+    setError(null);
+    setIsTransportModalOpen(false);
+    if (project_id) {
+      const selectedProj = allProjects.find((project) => project.project_id === project_id);
+      const projectSites = selectedProj && Array.isArray(selectedProj.sites) ? selectedProj.sites : [];
+      setSites(projectSites);
+      if (projectSites.length > 0 && !selectedSite) {
+        setSelectedSite(projectSites[0].site_id);
+        setDispatchData((prev) => ({
+          ...prev,
+          order_no: projectSites[0].po_number || "",
+          vendor_code: projectSites[0].vendor_code || "",
+        }));
+      }
     }
   };
 
@@ -429,6 +466,7 @@ const MaterialDispatch = () => {
     setDispatchData((prev) => ({
       ...prev,
       order_no: selectedSiteData ? selectedSiteData.po_number || "" : "",
+      vendor_code: selectedSiteData ? selectedSiteData.vendor_code || "" : "",
       dc_no: nextDcNo,
     }));
     setTransportData({
@@ -731,6 +769,7 @@ const MaterialDispatch = () => {
 
   // Effect hooks
   useEffect(() => {
+    fetchCompanies();
     fetchProjects();
     fetchTransportTypes();
     fetchVehicles();
@@ -738,10 +777,54 @@ const MaterialDispatch = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedProject) {
-      fetchSites(selectedProject);
+    if (selectedCompany) {
+      const filteredProjects = allProjects.filter((project) => project.company_id === selectedCompany);
+      setProjects(filteredProjects);
+      if (filteredProjects.length > 0 && !selectedProject) {
+        setSelectedProject(filteredProjects[0].project_id);
+      } else if (!filteredProjects.some((project) => project.project_id === selectedProject)) {
+        setSelectedProject("");
+        setSites([]);
+        setSelectedSite("");
+      }
+    } else {
+      setProjects([]);
+      setSelectedProject("");
+      setSites([]);
+      setSelectedSite("");
     }
-  }, [selectedProject]);
+  }, [selectedCompany, allProjects]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      const selectedProj = allProjects.find((project) => project.project_id === selectedProject);
+      const projectSites = selectedProj && Array.isArray(selectedProj.sites) ? selectedProj.sites : [];
+      setSites(projectSites);
+      if (projectSites.length > 0 && !selectedSite) {
+        setSelectedSite(projectSites[0].site_id);
+        setDispatchData((prev) => ({
+          ...prev,
+          order_no: projectSites[0].po_number || "",
+          vendor_code: projectSites[0].vendor_code || "",
+        }));
+      } else if (!projectSites.some((site) => site.site_id === selectedSite)) {
+        setSelectedSite("");
+        setDispatchData((prev) => ({
+          ...prev,
+          order_no: "",
+          vendor_code: "",
+        }));
+      }
+    } else {
+      setSites([]);
+      setSelectedSite("");
+      setDispatchData((prev) => ({
+        ...prev,
+        order_no: "",
+        vendor_code: "",
+      }));
+    }
+  }, [selectedProject, allProjects]);
 
   useEffect(() => {
     if (selectedProject && selectedSite) {
@@ -784,29 +867,49 @@ const MaterialDispatch = () => {
           </p>
         </div>
 
-        {/* Project and Site Selection */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end gap-4">
-          <div className="flex-1">
+        {/* Company, Project, and Site Selection */}
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="company">
+              Select Company
+            </label>
+            <select
+              id="company"
+              value={selectedCompany}
+              onChange={handleCompanyChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
+              disabled={loading.companies}
+            >
+              <option value="">Select Company</option>
+              {companies.map((company) => (
+                <option key={company.company_id} value={company.company_id}>
+                  {company.company_name || "Unknown Company"}
+                </option>
+              ))}
+            </select>
+            {loading.companies && <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />}
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="project">
-              Select Project
+              Select Cost Center
             </label>
             <select
               id="project"
               value={selectedProject}
               onChange={handleProjectChange}
-              className="w-full max-w-md px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
-              disabled={loading.projects}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
+              disabled={loading.projects || !selectedCompany}
             >
-              <option value="">Select Project</option>
+              <option value="">Select Cost Center</option>
               {projects.map((project) => (
-                <option key={project.pd_id} value={project.pd_id}>
+                <option key={project.project_id} value={project.project_id}>
                   {project.project_name || "Unknown Project"}
                 </option>
               ))}
             </select>
             {loading.projects && <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />}
           </div>
-          <div className="flex-1">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="site">
               Select Site
             </label>
@@ -814,13 +917,13 @@ const MaterialDispatch = () => {
               id="site"
               value={selectedSite}
               onChange={handleSiteChange}
-              className="w-full max-w-md px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
               disabled={loading.sites || !selectedProject}
             >
               <option value="">Select Site</option>
               {sites.map((site) => (
                 <option key={site.site_id} value={site.site_id}>
-                  {site.site_name} (PO: {site.po_number})
+                  {site.site_name} (PO: {site.po_number || "N/A"})
                 </option>
               ))}
             </select>
@@ -829,7 +932,7 @@ const MaterialDispatch = () => {
         </div>
 
         {/* Dispatch Details */}
-        {selectedProject && selectedSite && (
+        {selectedCompany && selectedProject && selectedSite && (
           <div className="mb-6 bg-white p-6 rounded-xl shadow-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispatch Details</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -903,10 +1006,10 @@ const MaterialDispatch = () => {
               <p className="text-gray-600 text-lg font-medium">Loading material assignments...</p>
             </div>
           </div>
-        ) : !selectedProject || !selectedSite ? (
+        ) : !selectedCompany || !selectedProject || !selectedSite ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
             <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" aria-hidden="true" />
-            <p className="text-gray-600 text-lg font-medium">Please select a project and site.</p>
+            <p className="text-gray-600 text-lg font-medium">Please select a company, project, and site.</p>
           </div>
         ) : Object.keys(groupedMaterials).length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">

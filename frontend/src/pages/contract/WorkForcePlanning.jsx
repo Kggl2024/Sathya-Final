@@ -7,7 +7,7 @@ import { Save, Users, UserCheck, Calendar, Building, HardHat } from "lucide-reac
 import { useParams } from "react-router-dom";
 
 const WorkForcePlanning = () => {
-   const { encodedUserId } = useParams();
+  const { encodedUserId } = useParams();
   const [projects, setProjects] = useState([]);
   const [sites, setSites] = useState([]);
   const [workDescriptions, setWorkDescriptions] = useState([]);
@@ -247,13 +247,13 @@ const WorkForcePlanning = () => {
             <div className="bg-blue-50 p-4 rounded-lg">
               <label className="block text-sm font-medium text-blue-800 mb-2 flex items-center">
                 <HardHat size={16} className="mr-1" />
-                Project
+                Cost Center
               </label>
               <Select
                 options={projectOptions}
                 value={selectedProject}
                 onChange={setSelectedProject}
-                placeholder="Select Project..."
+                placeholder="Select Cost Center..."
                 isSearchable
                 className="w-full"
                 classNamePrefix="react-select"

@@ -41,144 +41,158 @@ const ProjectList = () => {
   const [poGroups, setPoGroups] = useState([]);
   const [siteInfo, setSiteInfo] = useState(null);
   const [loadingSite, setLoadingSite] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [siteOptions, setSiteOptions] = useState([]);
-  const [selectedSite, setSelectedSite] = useState("");
-  const [selectedSiteDetails, setSelectedSiteDetails] = useState({
-    po_number: "",
-    site_name: "",
-    site_id: "",
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loadingSites, setLoadingSites] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedSitePo, setSelectedSitePo] = useState(null);
+  const [selectedSiteId, setSelectedSiteId] = useState(null);
+  const [selectedSiteName, setSelectedSiteName] = useState(null);
+  const [workDescOptions, setWorkDescOptions] = useState([]);
+  const [selectedWorkDesc, setSelectedWorkDesc] = useState(null);
+  const [searchQueryCompany, setSearchQueryCompany] = useState("");
+  const [searchQueryProject, setSearchQueryProject] = useState("");
+  const [searchQuerySite, setSearchQuerySite] = useState("");
+  const [searchQueryWorkDesc, setSearchQueryWorkDesc] = useState("");
+  const [dropdownOpenCompany, setDropdownOpenCompany] = useState(false);
+  const [dropdownOpenProject, setDropdownOpenProject] = useState(false);
+  const [dropdownOpenSite, setDropdownOpenSite] = useState(false);
+  const [dropdownOpenWorkDesc, setDropdownOpenWorkDesc] = useState(false);
   const [showAssignIncharge, setShowAssignIncharge] = useState(false);
   const [showMaterialPlanning, setShowMaterialPlanning] = useState(false);
   const [showMaterialDispatch, setShowMaterialDispatch] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRefCompany = useRef(null);
+  const dropdownRefProject = useRef(null);
+  const dropdownRefSite = useRef(null);
+  const dropdownRefWorkDesc = useRef(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchSites();
+    fetchCompanies();
     fetchReckonerData();
-    // eslint-disable-next-line
-  }, [selectedSite]);
+  }, []);
 
   useEffect(() => {
-    if (reckonerData.length > 0 && selectedSite) {
-      const filtered = reckonerData.filter((item) => item.po_number === selectedSite);
+    if (selectedCompany) {
+      fetchProjectsForCompany(selectedCompany);
+    } else {
+      setProjects([]);
+      setSelectedProject(null);
+      setSiteOptions([]);
+      setSelectedSitePo(null);
+      setSelectedSiteId(null);
+      setSelectedSiteName(null);
+      setWorkDescOptions([]);
+      setSelectedWorkDesc(null);
+    }
+  }, [selectedCompany]);
+
+  useEffect(() => {
+    if (selectedProject && projects.length > 0) {
+      const selectedProj = projects.find(p => p.project_id === selectedProject);
+      const sites = selectedProj ? selectedProj.sites.map(site => ({
+        value: site.po_number,
+        label: `${site.site_name} (PO: ${site.po_number})`,
+        site_id: site.site_id,
+        site_name: site.site_name
+      })) : [];
+      setSiteOptions(sites);
+      if (sites.length > 0) {
+        setSelectedSitePo(sites[0].value);
+        setSelectedSiteId(sites[0].site_id);
+        setSelectedSiteName(sites[0].site_name);
+      } else {
+        setSelectedSitePo(null);
+        setSelectedSiteId(null);
+        setSelectedSiteName(null);
+      }
+      setWorkDescOptions([]);
+      setSelectedWorkDesc(null);
+    } else {
+      setSiteOptions([]);
+      setSelectedSitePo(null);
+      setSelectedSiteId(null);
+      setSelectedSiteName(null);
+      setWorkDescOptions([]);
+      setSelectedWorkDesc(null);
+    }
+  }, [selectedProject, projects]);
+
+  useEffect(() => {
+    if (selectedSiteId) {
+      fetchWorkDescriptions(selectedSiteId);
+    } else {
+      setWorkDescOptions([]);
+      setSelectedWorkDesc(null);
+    }
+  }, [selectedSiteId]);
+
+  useEffect(() => {
+    if (selectedSitePo && reckonerData.length > 0) {
+      let filtered = reckonerData.filter(item => item.po_number === selectedSitePo);
+      if (selectedWorkDesc) {
+        filtered = filtered.filter(item => item.work_descriptions === selectedWorkDesc.desc_name);
+      }
       setFilteredData(filtered);
       groupDataByPoNumber(filtered);
+      fetchSiteInfo(selectedSitePo);
     } else {
-      setFilteredData(reckonerData);
-      groupDataByPoNumber(reckonerData);
+      setFilteredData([]);
+      setPoGroups([]);
+      setSiteInfo(null);
     }
-    // eslint-disable-next-line
-  }, [reckonerData, selectedSite]);
+  }, [selectedSitePo, selectedWorkDesc, reckonerData]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
+      if (dropdownRefCompany.current && !dropdownRefCompany.current.contains(event.target)) {
+        setDropdownOpenCompany(false);
+      }
+      if (dropdownRefProject.current && !dropdownRefProject.current.contains(event.target)) {
+        setDropdownOpenProject(false);
+      }
+      if (dropdownRefSite.current && !dropdownRefSite.current.contains(event.target)) {
+        setDropdownOpenSite(false);
+      }
+      if (dropdownRefWorkDesc.current && !dropdownRefWorkDesc.current.contains(event.target)) {
+        setDropdownOpenWorkDesc(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchSites = async () => {
+  const fetchCompanies = async () => {
     try {
-      setLoadingSites(true);
-      const res = await axios.get("http://localhost:5000/reckoner/sites");
-      if (res.data.success) {
-        const options = res.data.data.map((site) => ({
-          po_number: site.po_number,
-          site_name: site.site_name,
-          site_id: site.site_id,
-          label: `${site.site_name} (PO: ${site.po_number})`,
-        }));
-        setSiteOptions(options);
-        if (options.length > 0 && !selectedSite) {
-          setSelectedSite(options[0].po_number);
-          setSelectedSiteDetails({
-            po_number: options[0].po_number,
-            site_name: options[0].site_name,
-            site_id: options[0].site_id,
-          });
-          fetchSiteInfo(options[0].po_number);
-        }
-      } else {
-        showAlert("error", "Failed to fetch site options");
-      }
+      const res = await axios.get("http://localhost:5000/project/companies");
+      setCompanies(res.data || []);
     } catch (error) {
-      console.error("Error fetching sites:", error);
-      showAlert("error", "Failed to fetch site options");
-    } finally {
-      setLoadingSites(false);
+      console.error("Error fetching companies:", error);
+      showAlert("error", "Failed to fetch companies");
     }
   };
 
-  const groupDataByPoNumber = (data) => {
-    const groups = {};
-    data.forEach((item) => {
-      if (!groups[item.po_number]) groups[item.po_number] = [];
-      groups[item.po_number].push(item);
-    });
-    setPoGroups(Object.values(groups));
-  };
-
-  const fetchSiteInfo = async (poNumber) => {
+  const fetchProjectsForCompany = async (companyId) => {
     try {
-      setLoadingSite(true);
-      const res = await axios.get(`http://localhost:5000/reckoner/sites/${poNumber}`);
-      if (res.data.success) {
-        setSiteInfo(res.data.data);
-        setSelectedSiteDetails({
-          po_number: poNumber,
-          site_name: res.data.data.site_name,
-          site_id: res.data.data.site_id,
-        });
-      } else {
-        const fallbackSite = siteOptions.find((option) => option.po_number === poNumber);
-        setSiteInfo(
-          fallbackSite
-            ? {
-                site_name: fallbackSite.site_name,
-                site_id: fallbackSite.site_id,
-              }
-            : null
-        );
-        setSelectedSiteDetails({
-          po_number: poNumber,
-          site_name: fallbackSite?.site_name || "",
-          site_id: fallbackSite?.site_id || "",
-        });
-      }
+      const res = await axios.get(`http://localhost:5000/project/projects-with-sites/${companyId}`);
+      setProjects(res.data || []);
     } catch (error) {
-      console.error("Error fetching site info:", error);
-      const fallbackSite = siteOptions.find((option) => option.po_number === poNumber);
-      setSiteInfo(
-        fallbackSite
-          ? {
-              site_name: fallbackSite.site_name,
-              site_id: fallbackSite.site_id,
-            }
-          : null
-      );
-      setSelectedSiteDetails({
-        po_number: poNumber,
-        site_name: fallbackSite?.site_name || "",
-        site_id: fallbackSite?.site_id || "",
-      });
-    } finally {
-      setLoadingSite(false);
+      console.error("Error fetching projects:", error);
+      showAlert("error", "Failed to fetch projects");
     }
   };
 
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert({ type: "", message: "" }), 3000);
+  const fetchWorkDescriptions = async (siteId) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/project/work-descriptions-by-site/${siteId}`);
+      setWorkDescOptions(res.data || []);
+    } catch (error) {
+      console.error("Error fetching work descriptions:", error);
+      showAlert("error", "Failed to fetch work descriptions");
+    }
   };
 
   const fetchReckonerData = async () => {
@@ -207,11 +221,6 @@ const ProjectList = () => {
         };
       });
       setReckonerData(updatedData);
-      if (selectedSite) {
-        setFilteredData(updatedData.filter((item) => item.po_number === selectedSite));
-      } else {
-        setFilteredData(updatedData);
-      }
     } catch (error) {
       console.error(error);
       showAlert("error", "Failed to fetch reckoner data");
@@ -220,20 +229,86 @@ const ProjectList = () => {
     }
   };
 
-  const handleSiteSelect = (poNumber) => {
-    setSelectedSite(poNumber);
-    const selected = siteOptions.find((option) => option.po_number === poNumber);
-    setSelectedSiteDetails({
-      po_number: poNumber,
-      site_name: selected?.site_name || "",
-      site_id: selected?.site_id || "",
-    });
-    fetchSiteInfo(poNumber);
-    setDropdownOpen(false);
-    setSearchQuery("");
+  const handleCompanySelect = (companyId) => {
+    setSelectedCompany(companyId);
+    setDropdownOpenCompany(false);
+    setSearchQueryCompany("");
   };
 
-  const handleSearchChange = (e) => setSearchQuery(e.target.value.toLowerCase());
+  const handleProjectSelect = (projectId) => {
+    setSelectedProject(projectId);
+    setDropdownOpenProject(false);
+    setSearchQueryProject("");
+  };
+
+  const handleSiteSelect = (poNumber, siteId, siteName) => {
+    setSelectedSitePo(poNumber);
+    setSelectedSiteId(siteId);
+    setSelectedSiteName(siteName);
+    setDropdownOpenSite(false);
+    setSearchQuerySite("");
+  };
+
+  const handleWorkDescSelect = (descId, descName) => {
+    setSelectedWorkDesc({ desc_id: descId, desc_name: descName });
+    setDropdownOpenWorkDesc(false);
+    setSearchQueryWorkDesc("");
+  };
+
+  const fetchSiteInfo = async (poNumber) => {
+    try {
+      setLoadingSite(true);
+      const res = await axios.get(`http://localhost:5000/reckoner/sites/${poNumber}`);
+      if (res.data.success) {
+        setSiteInfo(res.data.data);
+      } else {
+        const fallbackSite = siteOptions.find((option) => option.value === poNumber);
+        setSiteInfo(
+          fallbackSite
+            ? {
+                site_name: fallbackSite.site_name,
+                site_id: fallbackSite.site_id,
+              }
+            : null
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching site info:", error);
+      const fallbackSite = siteOptions.find((option) => option.value === poNumber);
+      setSiteInfo(
+        fallbackSite
+          ? {
+              site_name: fallbackSite.site_name,
+              site_id: fallbackSite.site_id,
+            }
+          : null
+      );
+    } finally {
+      setLoadingSite(false);
+    }
+  };
+
+  const showAlert = (type, message) => {
+    setAlert({ type, message });
+    setTimeout(() => setAlert({ type: "", message: "" }), 3000);
+  };
+
+  const groupDataByPoNumber = (data) => {
+    const groups = {};
+    data.forEach((item) => {
+      if (!groups[item.po_number]) groups[item.po_number] = [];
+      groups[item.po_number].push(item);
+    });
+    setPoGroups(Object.values(groups));
+  };
+
+  const handleSearchChangeCompany = (e) => setSearchQueryCompany(e.target.value.toLowerCase());
+
+  const handleSearchChangeProject = (e) => setSearchQueryProject(e.target.value.toLowerCase());
+
+  const handleSearchChangeSite = (e) => setSearchQuerySite(e.target.value.toLowerCase());
+
+  const handleSearchChangeWorkDesc = (e) => setSearchQueryWorkDesc(e.target.value.toLowerCase());
 
   const closeGradeModal = () => {
     setIsModalClosing(true);
@@ -378,16 +453,31 @@ const ProjectList = () => {
     };
   };
 
-  const currentPoGroup = poGroups.find((group) => group[0]?.po_number === selectedSite) || [];
-  const filteredSiteOptions = siteOptions.filter(
-    (option) =>
-      option.site_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.po_number.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCompanies = companies.filter(
+    (company) =>
+      company.company_name.toLowerCase().includes(searchQueryCompany) 
   );
+
+  const filteredProjects = projects.filter(
+    (project) =>
+      project.project_name.toLowerCase().includes(searchQueryProject)
+  );
+
+  const filteredSites = siteOptions.filter(
+    (option) =>
+      option.label.toLowerCase().includes(searchQuerySite)
+  );
+
+  const filteredWorkDescs = workDescOptions.filter(
+    (option) =>
+      option.desc_name.toLowerCase().includes(searchQueryWorkDesc)
+  );
+
+  const currentPoGroup = poGroups.find((group) => group[0]?.po_number === selectedSitePo) || [];
 
   return (
     <>
-      {/* Assign Site Incharge Modal */}
+      {/* Modals remain the same */}
       {showAssignIncharge && (
         <div
           className={`fixed inset-0 flex justify-center items-center z-50 transition-opacity duration-400 p-4 ${
@@ -402,7 +492,7 @@ const ProjectList = () => {
                 : "opacity-100 scale-100 translate-y-0"
             } max-h-[90vh] overflow-auto`}
           >
-            {/* <AssignSiteIncharge selectedSite={selectedSiteDetails} /> */}
+            <AssignSiteIncharge selectedSite={{po_number: selectedSitePo, site_name: selectedSiteName, site_id: selectedSiteId}} />
             <div className="absolute top-4 right-4">
               <button
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition duration-200 hover:shadow-md"
@@ -415,7 +505,6 @@ const ProjectList = () => {
         </div>
       )}
 
-      {/* Material Planning Modal */}
       {showMaterialPlanning && (
         <div
           className={`fixed inset-0 flex justify-center items-center z-50 transition-opacity duration-400 p-4 ${
@@ -430,7 +519,7 @@ const ProjectList = () => {
                 : "opacity-100 scale-100 translate-y-0"
             } max-h-[90vh] overflow-auto`}
           >
-            {/* <MaterialPlanning selectedSite={selectedSiteDetails} /> */}
+            <MaterialPlanning selectedSite={{po_number: selectedSitePo, site_name: selectedSiteName, site_id: selectedSiteId}} />
             <div className="absolute top-4 right-4">
               <button
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition duration-200 hover:shadow-md"
@@ -443,7 +532,6 @@ const ProjectList = () => {
         </div>
       )}
 
-      {/* Material Dispatch Modal */}
       {showMaterialDispatch && (
         <div
           className={`fixed inset-0 flex justify-center items-center z-50 transition-opacity duration-400 p-4 ${
@@ -458,7 +546,7 @@ const ProjectList = () => {
                 : "opacity-100 scale-100 translate-y-0"
             } max-h-[90vh] overflow-auto`}
           >
-            {/* <MaterialDispatch selectedSite={selectedSiteDetails} /> */}
+            <MaterialDispatch selectedSite={{po_number: selectedSitePo, site_name: selectedSiteName, site_id: selectedSiteId}} />
             <div className="absolute top-4 right-4">
               <button
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition duration-200 hover:shadow-md"
@@ -501,51 +589,44 @@ const ProjectList = () => {
             </p>
           </div>
 
-          {/* Site Selection Dropdown and Action Buttons */}
-          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end gap-4" ref={dropdownRef}>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Site</label>
+          {/* Selection Dropdowns */}
+          <div className="mb-6 sm:mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Company Dropdown */}
+            <div className="flex-1" ref={dropdownRefCompany}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Company</label>
               <div className="relative max-w-md">
-                {dropdownOpen ? (
+                {dropdownOpenCompany ? (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                     <div className="flex items-center px-3 py-2 border-b border-gray-200">
                       <Search className="h-5 w-5 text-gray-400" />
                       <input
                         type="text"
                         autoFocus
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                        placeholder="Search sites or PO numbers..."
+                        value={searchQueryCompany}
+                        onChange={handleSearchChangeCompany}
+                        placeholder="Search companies..."
                         className="flex-1 py-2 px-3 text-sm focus:outline-none bg-transparent"
                       />
                       <button
-                        onClick={() => setDropdownOpen(false)}
+                        onClick={() => setDropdownOpenCompany(false)}
                         className="ml-2 text-gray-500 hover:text-gray-700"
                       >
                         <X className="h-5 w-5" />
                       </button>
                     </div>
                     <div className="max-h-60 overflow-y-auto">
-                      {loadingSites ? (
-                        <div className="px-4 py-3 text-gray-500 text-sm flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2" />
-                          Loading sites...
-                        </div>
-                      ) : filteredSiteOptions.length === 0 ? (
-                        <div className="px-4 py-3 text-gray-500 text-sm">No matching sites found</div>
+                      {filteredCompanies.length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">No matching companies found</div>
                       ) : (
-                        filteredSiteOptions.map((option) => (
+                        filteredCompanies.map((company) => (
                           <div
-                            key={option.po_number}
-                            onClick={() => handleSiteSelect(option.po_number)}
+                            key={company.company_id}
+                            onClick={() => handleCompanySelect(company.company_id)}
                             className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${
-                              selectedSite === option.po_number
-                                ? "bg-indigo-100 text-indigo-800"
-                                : "text-gray-700"
+                              selectedCompany === company.company_id ? "bg-indigo-100 text-indigo-800" : "text-gray-700"
                             }`}
                           >
-                            <div className="font-medium">{option.site_name}</div>
-                            <div className="text-xs text-gray-500">PO: {option.po_number}</div>
+                            <div className="font-medium">{company.company_name}</div>
                           </div>
                         ))
                       )}
@@ -553,17 +634,138 @@ const ProjectList = () => {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setDropdownOpen(true)}
+                    onClick={() => setDropdownOpenCompany(true)}
                     className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
                   >
                     <div>
-                      {selectedSite ? (
-                        <>
-                          <div className="font-medium text-gray-900 text-sm sm:text-base">
-                            {siteOptions.find((opt) => opt.po_number === selectedSite)?.site_name}
+                      {selectedCompany ? (
+                        <div className="font-medium text-gray-900 text-sm sm:text-base">
+                          {companies.find((comp) => comp.company_id === selectedCompany)?.company_name}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm sm:text-base">Select a company...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Project Dropdown */}
+            <div className="flex-1" ref={dropdownRefProject}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Cost Center</label>
+              <div className="relative max-w-md">
+                {dropdownOpenProject ? (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="flex items-center px-3 py-2 border-b border-gray-200">
+                      <Search className="h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={searchQueryProject}
+                        onChange={handleSearchChangeProject}
+                        placeholder="Search projects..."
+                        className="flex-1 py-2 px-3 text-sm focus:outline-none bg-transparent"
+                      />
+                      <button
+                        onClick={() => setDropdownOpenProject(false)}
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredProjects.length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">No matching projects found</div>
+                      ) : (
+                        filteredProjects.map((project) => (
+                          <div
+                            key={project.project_id}
+                            onClick={() => handleProjectSelect(project.project_id)}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${
+                              selectedProject === project.project_id ? "bg-indigo-100 text-indigo-800" : "text-gray-700"
+                            }`}
+                          >
+                            <div className="font-medium">{project.project_name}</div>
                           </div>
-                          <div className="text-xs text-gray-500">PO: {selectedSite}</div>
-                        </>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDropdownOpenProject(true)}
+                    disabled={!selectedCompany}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      {selectedProject ? (
+                        <div className="font-medium text-gray-900 text-sm sm:text-base">
+                          {projects.find((proj) => proj.project_id === selectedProject)?.project_name}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm sm:text-base">Select a cost center...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Site Dropdown */}
+            <div className="flex-1" ref={dropdownRefSite}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Site</label>
+              <div className="relative max-w-md">
+                {dropdownOpenSite ? (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="flex items-center px-3 py-2 border-b border-gray-200">
+                      <Search className="h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={searchQuerySite}
+                        onChange={handleSearchChangeSite}
+                        placeholder="Search sites or PO numbers..."
+                        className="flex-1 py-2 px-3 text-sm focus:outline-none bg-transparent"
+                      />
+                      <button
+                        onClick={() => setDropdownOpenSite(false)}
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredSites.length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">No matching sites found</div>
+                      ) : (
+                        filteredSites.map((option) => (
+                          <div
+                            key={option.value}
+                            onClick={() => handleSiteSelect(option.value, option.site_id, option.site_name)}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${
+                              selectedSitePo === option.value ? "bg-indigo-100 text-indigo-800" : "text-gray-700"
+                            }`}
+                          >
+                            <div className="font-medium">{option.label}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDropdownOpenSite(true)}
+                    disabled={!selectedProject}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      {selectedSitePo ? (
+                        <div className="font-medium text-gray-900 text-sm sm:text-base">
+                          {siteOptions.find((opt) => opt.value === selectedSitePo)?.site_name} (PO: {selectedSitePo})
+                        </div>
                       ) : (
                         <span className="text-gray-500 text-sm sm:text-base">Select a site...</span>
                       )}
@@ -573,263 +775,332 @@ const ProjectList = () => {
                 )}
               </div>
             </div>
-            {/* <div className="flex gap-4">
-              <button
-                onClick={() => setShowAssignIncharge(true)}
-                className="px-4 py-3 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all flex items-center text-sm sm:text-base font-medium"
-              >
-                <UserPlus className="h-5 w-5 mr-2" />
-                Assign Site Incharge
-              </button>
-              <button
-                onClick={() => setShowMaterialPlanning(true)}
-                className="px-4 py-3 bg-purple-600 text-white rounded-xl shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all flex items-center text-sm sm:text-base font-medium"
-              >
-                <Package className="h-5 w-5 mr-2" />
-                Material Planning
-              </button>
-              <button
-                onClick={() => setShowMaterialDispatch(true)}
-                className="px-4 py-3 bg-teal-600 text-white rounded-xl shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all flex items-center text-sm sm:text-base font-medium"
-              >
-                <Truck className="h-5 w-5 mr-2" />
-                Material Dispatch
-              </button>
-            </div> */}
+
+            {/* Work Description Dropdown */}
+            <div className="flex-1" ref={dropdownRefWorkDesc}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Work Description</label>
+              <div className="relative max-w-md">
+                {dropdownOpenWorkDesc ? (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="flex items-center px-3 py-2 border-b border-gray-200">
+                      <Search className="h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={searchQueryWorkDesc}
+                        onChange={handleSearchChangeWorkDesc}
+                        placeholder="Search work descriptions..."
+                        className="flex-1 py-2 px-3 text-sm focus:outline-none bg-transparent"
+                      />
+                      <button
+                        onClick={() => setDropdownOpenWorkDesc(false)}
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredWorkDescs.length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">No matching work descriptions found</div>
+                      ) : (
+                        filteredWorkDescs.map((option) => (
+                          <div
+                            key={option.desc_id}
+                            onClick={() => handleWorkDescSelect(option.desc_id, option.desc_name)}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${
+                              selectedWorkDesc?.desc_id === option.desc_id ? "bg-indigo-100 text-indigo-800" : "text-gray-700"
+                            }`}
+                          >
+                            <div className="font-medium">{option.desc_name}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDropdownOpenWorkDesc(true)}
+                    disabled={!selectedSiteId}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      {selectedWorkDesc ? (
+                        <div className="font-medium text-gray-900 text-sm sm:text-base">
+                          {selectedWorkDesc.desc_name}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm sm:text-base">Select work description...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Action: Assigned Incharges */}
-          <div className="mb-6 sm:mb-8">
-            <ViewAssignedIncharges selectedSite={selectedSiteDetails} />
-          </div>
+          {/* Action Buttons */}
+          {/* <div className="mb-6 sm:mb-8 flex flex-wrap gap-4">
+            <button
+              onClick={() => setShowAssignIncharge(true)}
+              disabled={!selectedSiteId}
+              className="px-4 py-3 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all flex items-center text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <UserPlus className="h-5 w-5 mr-2" />
+              Assign Site Incharge
+            </button>
+            <button
+              onClick={() => setShowMaterialPlanning(true)}
+              disabled={!selectedSiteId}
+              className="px-4 py-3 bg-purple-600 text-white rounded-xl shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all flex items-center text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Package className="h-5 w-5 mr-2" />
+              Material Planning
+            </button>
+            <button
+              onClick={() => setShowMaterialDispatch(true)}
+              disabled={!selectedSiteId}
+              className="px-4 py-3 bg-teal-600 text-white rounded-xl shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all flex items-center text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Truck className="h-5 w-5 mr-2" />
+              Material Dispatch
+            </button>
+          </div> */}
+
+          {/* Assigned Incharges */}
+          {selectedSiteId && (
+            <div className="mb-6 sm:mb-8">
+              <ViewAssignedIncharges selectedSite={{ po_number: selectedSitePo, site_name: selectedSiteName, site_id: selectedSiteId }} />
+            </div>
+          )}
 
           {/* Data Table */}
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
             </div>
-          ) : currentPoGroup.length === 0 ? (
+          ) : filteredData.length === 0 ? (
             <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 text-center text-gray-500">
-              No reckoner data found for the selected site.
+              No reckoner data found for the selected criteria.
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
-          {/* Mobile View: Card Layout */}
-<div className="md:hidden divide-y divide-gray-200">
-  {currentPoGroup.map((r) => {
-    const balance = calculateBalance(r);
-    return (
-      <div key={r.rec_id} className="p-4 space-y-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <div className="font-medium text-gray-900">{r.item_id}</div>
-            <div className="text-xs text-gray-500">
-              {r.category_name} / {r.subcategory_name}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {editingId === r.rec_id ? (
-              <>
-                <button
-                  onClick={() => handleSubmit(r.rec_id)}
-                  disabled={submitting}
-                  className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
-                >
-                  <Save className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => handleEdit(r)}
-                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="text-sm text-gray-900 flex items-center">
-          <FileText className="mr-2 h-4 w-4 text-indigo-600" />
-          <span className="truncate">{r.work_descriptions}</span>
-        </div>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="font-medium text-gray-700">PO Details</div>
-            <div>Qty: {r.po_quantity} {r.uom}</div>
-            <div>Rate: {r.rate}</div>
-            <div>Value: {r.value}</div>
-          </div>
-          <div>
-            <div className="font-medium text-gray-700">Completion</div>
-            {editingId === r.rec_id ? (
-              <>
-                <input
-                  type="text"
-                  value={editingData.area_completed}
-                  onChange={(e) => handleEditChange("area_completed", e.target.value)}
-                  className="w-full p-1 border border-gray-300 rounded text-sm"
-                  placeholder="Area"
-                />
-                <div className="mt-2">Value: {editingData.value || "0.00"}</div>
-              </>
-            ) : (
-              <>
-                <div>Area: {r.area_completed}</div>
-                <div>Value: {r.completion_value}</div>
-              </>
-            )}
-          </div>
-          <div>
-            <div className="font-medium text-gray-700">Balance</div>
-            <div>Qty: {balance.qty} {r.uom}</div>
-            <div>Value: {balance.value}</div>
-          </div>
-          <div>
-            <div className="font-medium text-gray-700">Status</div>
-            <div className="space-y-2">
-              {editingId === r.rec_id
-                ? renderStatusTag(editingData.work_status)
-                : renderStatusTag(r.work_status)}
-              <div className="text-xs text-gray-500">
-                By: {r.created_by_name || "Unknown"}
+              {/* Mobile View: Card Layout */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {filteredData.map((r) => {
+                  const balance = calculateBalance(r);
+                  return (
+                    <div key={r.rec_id} className="p-4 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-gray-900">{r.item_id}</div>
+                          <div className="text-xs text-gray-500">
+                            {r.category_name} / {r.subcategory_name}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {editingId === r.rec_id ? (
+                            <>
+                              <button
+                                onClick={() => handleSubmit(r.rec_id)}
+                                disabled={submitting}
+                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
+                              >
+                                <Save className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleEdit(r)}
+                              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-900 flex items-center">
+                        <FileText className="mr-2 h-4 w-4 text-indigo-600" />
+                        <span className="truncate">{r.work_descriptions}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium text-gray-700">PO Details</div>
+                          <div>Qty: {r.po_quantity} {r.uom}</div>
+                          <div>Rate: {r.rate}</div>
+                          <div>Value: {r.value}</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-700">Completion</div>
+                          {editingId === r.rec_id ? (
+                            <>
+                              <input
+                                type="text"
+                                value={editingData.area_completed}
+                                onChange={(e) => handleEditChange("area_completed", e.target.value)}
+                                className="w-full p-1 border border-gray-300 rounded text-sm"
+                                placeholder="Area"
+                              />
+                              <div className="mt-2">Value: {editingData.value || "0.00"}</div>
+                            </>
+                          ) : (
+                            <>
+                              <div>Area: {r.area_completed}</div>
+                              <div>Value: {r.completion_value}</div>
+                            </>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-700">Balance</div>
+                          <div>Qty: {balance.qty} {r.uom}</div>
+                          <div>Value: {balance.value}</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-700">Status</div>
+                          <div className="space-y-2">
+                            {editingId === r.rec_id
+                              ? renderStatusTag(editingData.work_status)
+                              : renderStatusTag(r.work_status)}
+                            <div className="text-xs text-gray-500">
+                              By: {r.created_by_name || "Unknown"}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Updated: {r.updated_at ? new Date(r.updated_at).toLocaleString() : "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-xs text-gray-500">
-                Updated: {r.updated_at ? new Date(r.updated_at).toLocaleString() : "N/A"}
+              {/* Desktop: Table Layout */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-indigo-600 to-indigo-700">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
+                        Item
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
+                        Description
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={3}>
+                        PO Details
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={2}>
+                        Completion
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={2}>
+                        Balance
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
+                        Action
+                      </th>
+                    </tr>
+                    <tr className="bg-indigo-500">
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Qty</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Rate</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Area</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Qty</th>
+                      <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredData.map((r) => {
+                      const balance = calculateBalance(r);
+                      return (
+                        <tr key={r.rec_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                            <div>{r.item_id}</div>
+                            <div className="text-xs text-gray-500">
+                              {r.category_name} / {r.subcategory_name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 max-w-xs text-sm text-gray-900">
+                            <div className="flex items-center">
+                              <FileText className="mr-2 h-4 w-4 text-indigo-600" />
+                              <span className="truncate">{r.work_descriptions}</span>
+                            </div>
+                          </td>
+                          <td className="px-2 py-4 text-center text-sm">{r.po_quantity} {r.uom}</td>
+                          <td className="px-2 py-4 text-center text-sm">{r.rate}</td>
+                          <td className="px-2 py-4 text-center text-sm">{r.value}</td>
+                          {editingId === r.rec_id ? (
+                            <>
+                              <td className="px-2 py-4 text-center">
+                                <input
+                                  type="text"
+                                  value={editingData.area_completed}
+                                  onChange={(e) => handleEditChange("area_completed", e.target.value)}
+                                  className="w-20 p-1 border border-gray-300 rounded text-sm text-center"
+                                  placeholder="Area"
+                                />
+                              </td>
+                              <td className="px-2 py-4 text-center text-sm">{editingData.value || "0.00"}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-2 py-4 text-center text-sm">{r.area_completed}</td>
+                              <td className="px-2 py-4 text-center text-sm">{r.completion_value}</td>
+                            </>
+                          )}
+                          <td className="px-2 py-4 text-center text-sm">{balance.qty} {r.uom}</td>
+                          <td className="px-2 py-4 text-center text-sm">{balance.value}</td>
+                          <td className="px-4 py-4 text-center text-sm space-y-2">
+                            {editingId === r.rec_id
+                              ? renderStatusTag(editingData.work_status)
+                              : renderStatusTag(r.work_status)}
+                            <div className="text-xs text-gray-500">
+                              Updated By: {r.created_by_name || ""}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Updated at: {r.updated_at ? new Date(r.updated_at).toLocaleString() : ""}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm">
+                            {editingId === r.rec_id ? (
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => handleSubmit(r.rec_id)}
+                                  disabled={submitting}
+                                  className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
+                                >
+                                  <Save className="mr-1 h-4 w-4" /> Save
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700"
+                                >
+                                  <X className="mr-1 h-4 w-4" /> Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleEdit(r)}
+                                className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+                              >
+                                <Edit className="mr-1 h-4 w-4" /> Edit
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  })}
-</div>
-{/* Desktop: Table Layout */}
-<div className="hidden md:block overflow-x-auto">
-  <table className="min-w-full divide-y divide-gray-200">
-    <thead>
-      <tr className="bg-gradient-to-r from-indigo-600 to-indigo-700">
-        <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
-          Item
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
-          Description
-        </th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={3}>
-          PO Details
-        </th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={2}>
-          Completion
-        </th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" colSpan={2}>
-          Balance
-        </th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
-          Status
-        </th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider" rowSpan={2}>
-          Action
-        </th>
-      </tr>
-      <tr className="bg-indigo-500">
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Qty</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Rate</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Area</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Qty</th>
-        <th className="px-2 py-2 text-center text-xs font-semibold text-white">Value</th>
-      </tr>
-    </thead>
-    <tbody className="bg-white divide-y divide-gray-200">
-      {currentPoGroup.map((r) => {
-        const balance = calculateBalance(r);
-        return (
-          <tr key={r.rec_id} className="hover:bg-gray-50 transition-colors">
-            <td className="px-4 py-4 text-sm font-medium text-gray-900">
-              <div>{r.item_id}</div>
-              <div className="text-xs text-gray-500">
-                {r.category_name} / {r.subcategory_name}
-              </div>
-            </td>
-            <td className="px-4 py-4 max-w-xs text-sm text-gray-900">
-              <div className="flex items-center">
-                <FileText className="mr-2 h-4 w-4 text-indigo-600" />
-                <span className="truncate">{r.work_descriptions}</span>
-              </div>
-            </td>
-            <td className="px-2 py-4 text-center text-sm">{r.po_quantity} {r.uom}</td>
-            <td className="px-2 py-4 text-center text-sm">{r.rate}</td>
-            <td className="px-2 py-4 text-center text-sm">{r.value}</td>
-            {editingId === r.rec_id ? (
-              <>
-                <td className="px-2 py-4 text-center">
-                  <input
-                    type="text"
-                    value={editingData.area_completed}
-                    onChange={(e) => handleEditChange("area_completed", e.target.value)}
-                    className="w-20 p-1 border border-gray-300 rounded text-sm text-center"
-                    placeholder="Area"
-                  />
-                </td>
-                <td className="px-2 py-4 text-center text-sm">{editingData.value || "0.00"}</td>
-              </>
-            ) : (
-              <>
-                <td className="px-2 py-4 text-center text-sm">{r.area_completed}</td>
-                <td className="px-2 py-4 text-center text-sm">{r.completion_value}</td>
-              </>
-            )}
-            <td className="px-2 py-4 text-center text-sm">{balance.qty} {r.uom}</td>
-            <td className="px-2 py-4 text-center text-sm">{balance.value}</td>
-            <td className="px-4 py-4 text-center text-sm space-y-2">
-              {editingId === r.rec_id
-                ? renderStatusTag(editingData.work_status)
-                : renderStatusTag(r.work_status)}
-              <div className="text-xs text-gray-500">
-                Updated By: {r.created_by_name || ""}
-              </div>
-              <div className="text-xs text-gray-500">
-                Updated at: {r.updated_at ? new Date(r.updated_at).toLocaleString() : ""}
-              </div>
-            </td>
-            <td className="px-4 py-4 text-right text-sm">
-              {editingId === r.rec_id ? (
-                <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={() => handleSubmit(r.rec_id)}
-                    disabled={submitting}
-                    className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
-                  >
-                    <Save className="mr-1 h-4 w-4" /> Save
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700"
-                  >
-                    <X className="mr-1 h-4 w-4" /> Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleEdit(r)}
-                  className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <Edit className="mr-1 h-4 w-4" /> Edit
-                </button>
-              )}
-            </td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
             </div>
           )}
         </div>

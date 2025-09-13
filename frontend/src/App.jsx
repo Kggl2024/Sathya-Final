@@ -14,6 +14,7 @@ import ProjectProjection from './pages/contract/ProjectProjection';
 import AdditionalCash from './pages/contract/AdditionalCash';
 import DashboardMain from './pages/dashboard/DashBoardMain';
 import EmployeeDetails from './pages/contract/EmployeeDetails';
+import DispatchedMaterials from './pages/contract/DispatchedMaterials';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
@@ -123,6 +124,15 @@ const App = () => {
               element={
                 <ProtectedRoute role="admin">
                   <AdditionalCash />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/admin/contracts/projects/dispatched-materials/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <DispatchedMaterials />
                 </ProtectedRoute>
               } 
           />

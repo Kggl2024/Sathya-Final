@@ -166,7 +166,7 @@ const ProjectCreation = ({ companyId, onClose, onProjectCreated }) => {
     try {
       // Validate form data
       const validationErrors = [];
-      if (!formData.project_name) validationErrors.push("Project Name is required");
+      if (!formData.project_name) validationErrors.push("Cost Center is required");
       if (!formData.site_name) validationErrors.push("Site Name is required");
       if (!formData.po_number) validationErrors.push("PO Number is required");
       if (!formData.start_date) validationErrors.push("Start Date is required");
@@ -342,7 +342,7 @@ const ProjectCreation = ({ companyId, onClose, onProjectCreated }) => {
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-sm font-medium text-gray-700">
-                    Project Name *
+                    Cost Center *
                   </label>
                   <button
                     type="button"
@@ -357,7 +357,7 @@ const ProjectCreation = ({ companyId, onClose, onProjectCreated }) => {
                   <input
                     type="text"
                     name="project_name"
-                    placeholder="New project name"
+                    placeholder="New cost center"
                     value={formData.project_name}
                     onChange={handleChange}
                     required
@@ -371,7 +371,7 @@ const ProjectCreation = ({ companyId, onClose, onProjectCreated }) => {
                     required
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                   >
-                    <option value="">Select Project</option>
+                    <option value="">Select Cost Center</option>
                     {projects.map((project) => (
                       <option key={project.pd_id} value={project.project_name}>
                         {project.project_name}
@@ -384,7 +384,7 @@ const ProjectCreation = ({ companyId, onClose, onProjectCreated }) => {
               {/* Site Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Site Name *
+                  Site Name*
                 </label>
                 <input
                   type="text"

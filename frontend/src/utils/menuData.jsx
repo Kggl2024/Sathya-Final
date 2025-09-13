@@ -68,6 +68,7 @@ export const sidebarConfig = {
         { label: 'Material Dispatch', to: `/admin/contracts/projects/material-dispatch/${encodedUserId}`, icon: Truck },
         { label: 'Employee Details', to: `/admin/contracts/projects/employee-details/${encodedUserId}`, icon: IdCardLanyard },
         { label: 'Additional Cash', to: `/admin/contracts/projects/additional-cash/${encodedUserId}`, icon: Coins },
+        { label: 'Dispatched Materials List', to: `/admin/contracts/projects/dispatched-materials/${encodedUserId}`, icon: Truck },
 
       ],
       // accordion: {

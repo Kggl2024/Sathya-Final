@@ -1,18 +1,22 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { PlusCircle, Trash2, Loader2, CheckCircle } from "lucide-react";
 
 const MaterialPlanning = () => {
+  const [allProjects, setAllProjects] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [sites, setSites] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [uoms, setUoms] = useState([]);
   const [workDescriptions, setWorkDescriptions] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [materialAssignments, setMaterialAssignments] = useState({});
   const [loading, setLoading] = useState({
+    companies: false,
     projects: false,
     sites: false,
     materials: false,
@@ -22,32 +26,31 @@ const MaterialPlanning = () => {
   });
   const [error, setError] = useState(null);
 
-  // Fetch projects
+  // Fetch companies
+  const fetchCompanies = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, companies: true }));
+      const response = await axios.get("http://localhost:5000/project/companies");
+      setCompanies(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      setError("Failed to load companies. Please try again.");
+    } finally {
+      setLoading((prev) => ({ ...prev, companies: false }));
+    }
+  };
+
+  // Fetch projects with sites
   const fetchProjects = async () => {
     try {
       setLoading((prev) => ({ ...prev, projects: true }));
-      const response = await axios.get("http://localhost:5000/material/projects");
-      setProjects(response.data.data || []);
+      const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+      setAllProjects(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching projects:", error);
       setError("Failed to load projects. Please try again.");
     } finally {
       setLoading((prev) => ({ ...prev, projects: false }));
-    }
-  };
-
-  // Fetch sites based on selected project
-  const fetchSites = async (pd_id) => {
-    try {
-      setLoading((prev) => ({ ...prev, sites: true }));
-      const response = await axios.get(`http://localhost:5000/material/sites/${pd_id}`);
-      setSites(response.data.data || []);
-    } catch (error) {
-      console.error("Error fetching sites:", error);
-      setError("Failed to load sites. Please try again.");
-      setSites([]);
-    } finally {
-      setLoading((prev) => ({ ...prev, sites: false }));
     }
   };
 
@@ -85,9 +88,11 @@ const MaterialPlanning = () => {
       setLoading((prev) => ({ ...prev, workDescriptions: true }));
       const response = await axios.get(`http://localhost:5000/material/work-descriptions?site_id=${site_id}`);
       const descriptions = response.data.data || [];
-      setWorkDescriptions(descriptions);
+      // Deduplicate by desc_id
+      const uniqueDescs = Array.from(new Map(descriptions.map((desc) => [desc.desc_id, desc])).values());
+      setWorkDescriptions(uniqueDescs);
       // Initialize material assignments for each work description
-      const initialAssignments = descriptions.reduce((acc, desc) => {
+      const initialAssignments = uniqueDescs.reduce((acc, desc) => {
         acc[desc.desc_id] = [
           {
             item_id: "",
@@ -112,24 +117,51 @@ const MaterialPlanning = () => {
   };
 
   useEffect(() => {
+    fetchCompanies();
     fetchProjects();
     fetchMaterials();
     fetchUoms();
   }, []);
 
-  // Handle project selection
-  const handleProjectChange = async (e) => {
-    const pd_id = e.target.value;
-    setSelectedProject(pd_id);
+  // Filter projects when company changes
+  useEffect(() => {
+    if (selectedCompany) {
+      const filteredProjects = allProjects.filter((p) => p.company_id === selectedCompany);
+      setProjects(filteredProjects);
+    } else {
+      setProjects([]);
+    }
+    setSelectedProject("");
     setSelectedSite("");
-    setMaterialAssignments({});
+    setSites([]);
     setWorkDescriptions([]);
+    setMaterialAssignments({});
     setError(null);
-    if (pd_id) {
-      await fetchSites(pd_id);
+  }, [selectedCompany, allProjects]);
+
+  // Fetch sites when project changes
+  useEffect(() => {
+    if (selectedProject) {
+      const selectedProj = allProjects.find((p) => p.project_id === selectedProject);
+      const projectSites = selectedProj && Array.isArray(selectedProj.sites) ? selectedProj.sites : [];
+      setSites(projectSites);
     } else {
       setSites([]);
     }
+    setSelectedSite("");
+    setWorkDescriptions([]);
+    setMaterialAssignments({});
+    setError(null);
+  }, [selectedProject, allProjects]);
+
+  // Handle company selection
+  const handleCompanyChange = (e) => {
+    setSelectedCompany(e.target.value);
+  };
+
+  // Handle project selection
+  const handleProjectChange = (e) => {
+    setSelectedProject(e.target.value);
   };
 
   // Handle site selection
@@ -198,6 +230,10 @@ const MaterialPlanning = () => {
       setLoading((prev) => ({ ...prev, submitting: true }));
       setError(null);
 
+      if (!selectedCompany) {
+        setError("Please select a company.");
+        return;
+      }
       if (!selectedProject) {
         setError("Please select a project.");
         return;
@@ -281,6 +317,7 @@ const MaterialPlanning = () => {
           return acc;
         }, {})
       );
+      setSelectedCompany("");
       setSelectedProject("");
       setSelectedSite("");
       setSites([]);
@@ -294,7 +331,7 @@ const MaterialPlanning = () => {
   };
 
   // Check if form fields should be enabled
-  const isFormEnabled = selectedProject && selectedSite;
+  const isFormEnabled = selectedCompany && selectedProject && selectedSite;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
@@ -308,7 +345,7 @@ const MaterialPlanning = () => {
           </p>
         </div>
 
-        {loading.projects || loading.materials || loading.uoms || loading.workDescriptions ? (
+        {(loading.companies || loading.projects || loading.materials || loading.uoms || loading.workDescriptions) ? (
           <div className="flex justify-center items-center py-16">
             <div className="flex flex-col items-center space-y-3">
               <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
@@ -326,19 +363,39 @@ const MaterialPlanning = () => {
               )}
             </div>
 
-            <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Select Project</label>
+                <label className="block text-sm font-medium text-gray-700">Select Company</label>
+                <div className="relative">
+                  <select
+                    value={selectedCompany}
+                    onChange={handleCompanyChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all"
+                    required
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map((company) => (
+                      <option key={company.company_id} value={company.company_id}>
+                        {company.company_name || "Unknown Company"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Select Cost Center</label>
                 <div className="relative">
                   <select
                     value={selectedProject}
                     onChange={handleProjectChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all disabled:bg-gray-50"
                     required
+                    disabled={!selectedCompany}
                   >
-                    <option value="">Select Project</option>
+                    <option value="">Select Cost Center</option>
                     {projects.map((project) => (
-                      <option key={project.pd_id} value={project.pd_id}>
+                      <option key={project.project_id} value={project.project_id}>
                         {project.project_name || "Unknown Project"}
                       </option>
                     ))}
@@ -379,7 +436,7 @@ const MaterialPlanning = () => {
                 workDescriptions.map((desc, index) => (
                   <details
                     key={desc.desc_id}
-                    open={index === 0} // Open the first accordion by default
+                    open={index === 0}
                     className="mb-6 border border-gray-200 rounded-lg overflow-hidden"
                   >
                     <summary className="px-4 py-3 bg-gray-50 text-sm font-medium text-gray-700 cursor-pointer flex justify-between items-center">
@@ -568,6 +625,38 @@ const MaterialPlanning = () => {
           </form>
         )}
       </div>
+
+      <style>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slide-out {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out forwards;
+        }
+
+        .animate-slide-out {
+          animation: slide-out 0.3s ease-in forwards;
+        }
+      `}</style>
     </div>
   );
 };

@@ -985,13 +985,13 @@ const ProjectProjection = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Project
+                Select Cost Center
               </label>
               <Select
                 options={projects}
                 value={selectedProject}
                 onChange={setSelectedProject}
-                placeholder="Select a project..."
+                placeholder="Select a cost center..."
                 className="text-sm"
                 isDisabled={!selectedCompany}
                 isClearable
