@@ -31,6 +31,7 @@ const getTopMenus = (encodedUserId) => [
   { id: 3, name: 'Supply Management', path: '/supply', activePath:"/supply", icon: Package },
   { id: 4, name: 'Finance Management', path: '/finance', activePath:"/finance", icon: IndianRupee },
   { id: 5, name: 'Resource Management', path: '/resources', activePath:"/resources", icon: SwatchBook },
+  { id: 6, name: 'Site Incharge', path: '/site-incharge', activePath:"/site-incharge", icon: Users },
   { id: 99, name: 'User', path: '#', activePath:"#", icon: User },
 ];
 
@@ -116,7 +117,25 @@ export const sidebarConfig = {
         // { label: 'Utilization', to: '/resources/utilization', icon: ListCollapse },
       ],
     },
+    
   ],
+  '/site-incharge': [
+    {
+      title: 'Site Incharge Page',
+      icon: Users,
+      items: [
+        { label: 'Material Acknowledgment', to: `/site-incharge/material-acknowledgment/${encodedUserId}`, icon: Hammer },
+        { label: 'Material Usage', to: `/site-incharge/material-usage/${encodedUserId}`, icon: Hammer },
+        {label: 'Expense Entry', to: `/site-incharge/expense-entry/${encodedUserId}`, icon: Hammer },
+       
+        { label: 'Work Completion', to: `/site-incharge/work-completion/${encodedUserId}`, icon: Hammer },
+        { label: 'Labor Assignment', to: `/site-incharge/labor-assignment/${encodedUserId}`, icon: Hammer },
+        { label: 'Labor Attendance', to: `/site-incharge/labor-attendance/${encodedUserId}`, icon: Hammer },
+         { label: 'Additional Expenses', to: `/site-incharge/additional-expense/${encodedUserId}`, icon: Hammer },
+      ],
+    },
+  ],
+
 };
 
 export const miscIcons = {

@@ -15,11 +15,18 @@ import AdditionalCash from './pages/contract/AdditionalCash';
 import DashboardMain from './pages/dashboard/DashBoardMain';
 import EmployeeDetails from './pages/contract/EmployeeDetails';
 import DispatchedMaterials from './pages/contract/DispatchedMaterials';
+import MaterialAcknowledgement from './pages/site-incharge/MaterialAcknowledgement';
+import MaterialUsage from './pages/site-incharge/MaterialUsage';
+import BudgetExpenseEntry from './pages/site-incharge/BudgetExpenseEntry';
+import WorkCompletionEntry from './pages/site-incharge/WorkCompletionEntry';
+import LabourAssign from './pages/site-incharge/LabourAssign';
+import LabourAttendance from './pages/site-incharge/LabourAttendance';
+import AdditionalExpense from './pages/site-incharge/AdditionalExpense';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
     <h1 className="text-xl font-semibold">{title}</h1>
-    <p className="text-gray-600 mt-2">Content goes here.</p>
+    <p className="text-gray-600 mt-2">We are in the process of resolving this.</p>
   </div>
 );
 
@@ -154,6 +161,92 @@ const App = () => {
           <Route path="/resources/staff" element={<Placeholder title="Staff" />} />
           <Route path="/resources/assign" element={<Placeholder title="Assign" />} />
           <Route path="/resources/utilization" element={<Placeholder title="Utilization" />} />
+
+          {/* Site Incharges */}
+          <Route 
+              path="/site-incharge" 
+              element={
+                <ProtectedRoute role="admin">
+                  <Placeholder title="Site Incharges" />
+                </ProtectedRoute>
+                }
+           />
+
+
+
+          <Route 
+              path="/site-incharge/material-acknowledgment/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <MaterialAcknowledgement />
+                </ProtectedRoute>
+              } 
+          />
+          <Route 
+              path="/site-incharge/material-usage/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <MaterialUsage />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/site-incharge/expense-entry/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <BudgetExpenseEntry />
+                </ProtectedRoute>
+              } 
+          />
+           <Route 
+              path="/site-incharge/work-completion/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <WorkCompletionEntry />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/site-incharge/labor-assignment/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <LabourAssign />
+                </ProtectedRoute>
+              } 
+          />
+
+            <Route 
+              path="/site-incharge/labor-attendance/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <LabourAttendance />
+                </ProtectedRoute>
+              } 
+          />
+
+          <Route 
+              path="/site-incharge/additional-expense/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                  <AdditionalExpense />
+                </ProtectedRoute>
+              } 
+          />
+
+          
+
+          {/* Additional routes can be added here following the same pattern */}
+          
+          <Route 
+              path="/admin/contracts/projects/dispatched-materials/:encodedUserId"          
+              element={
+                <ProtectedRoute role="admin">
+                  <DispatchedMaterials />
+                </ProtectedRoute>
+              } 
+          />
         </Route>
       </Routes>
     </BrowserRouter>

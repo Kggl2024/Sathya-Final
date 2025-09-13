@@ -30,7 +30,7 @@ const MaterialPlanning = () => {
   const fetchCompanies = async () => {
     try {
       setLoading((prev) => ({ ...prev, companies: true }));
-      const response = await axios.get("http://localhost:5000/project/companies");
+      const response = await axios.get("http://103.118.158.127/api/project/companies");
       setCompanies(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching companies:", error);
@@ -44,7 +44,7 @@ const MaterialPlanning = () => {
   const fetchProjects = async () => {
     try {
       setLoading((prev) => ({ ...prev, projects: true }));
-      const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+      const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
       setAllProjects(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -58,7 +58,7 @@ const MaterialPlanning = () => {
   const fetchMaterials = async () => {
     try {
       setLoading((prev) => ({ ...prev, materials: true }));
-      const response = await axios.get("http://localhost:5000/material/materials");
+      const response = await axios.get("http://103.118.158.127/api/material/materials");
       setMaterials(response.data.data || []);
     } catch (error) {
       console.error("Error fetching materials:", error);
@@ -72,7 +72,7 @@ const MaterialPlanning = () => {
   const fetchUoms = async () => {
     try {
       setLoading((prev) => ({ ...prev, uoms: true }));
-      const response = await axios.get("http://localhost:5000/material/uom");
+      const response = await axios.get("http://103.118.158.127/api/material/uom");
       setUoms(response.data.data || []);
     } catch (error) {
       console.error("Error fetching UOMs:", error);
@@ -86,7 +86,7 @@ const MaterialPlanning = () => {
   const fetchWorkDescriptions = async (site_id) => {
     try {
       setLoading((prev) => ({ ...prev, workDescriptions: true }));
-      const response = await axios.get(`http://localhost:5000/material/work-descriptions?site_id=${site_id}`);
+      const response = await axios.get(`http://103.118.158.127/api/material/work-descriptions?site_id=${site_id}`);
       const descriptions = response.data.data || [];
       // Deduplicate by desc_id
       const uniqueDescs = Array.from(new Map(descriptions.map((desc) => [desc.desc_id, desc])).values());
@@ -289,7 +289,7 @@ const MaterialPlanning = () => {
         return;
       }
 
-      await axios.post("http://localhost:5000/material/assign-material", payload);
+      await axios.post("http://103.118.158.127/api/material/assign-material", payload);
 
       Swal.fire({
         position: "top-end",
