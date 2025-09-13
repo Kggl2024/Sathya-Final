@@ -320,10 +320,9 @@ exports.getCompletionEntriesBySiteID = async (req, res) => {
 };
 
 
-
 exports.saveMaterialAcknowledgement = async (req, res) => {
   try {
-    const { material_dispatch_id, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks } = req.body;
+    const { material_dispatch_id, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks, overall_quantity, remarks } = req.body;
 
     // Log incoming request body for debugging
     console.log('Request body:', req.body);
@@ -352,6 +351,7 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
     const validatedCompAQty = validateQuantity(comp_a_qty, 'comp_a_qty');
     const validatedCompBQty = validateQuantity(comp_b_qty, 'comp_b_qty');
     const validatedCompCQty = validateQuantity(comp_c_qty, 'comp_c_qty');
+    const validatedOverallQuantity = validateQuantity(overall_quantity, 'overall_quantity');
 
     // Validate remarks if provided
     if (comp_a_remarks && typeof comp_a_remarks !== 'string') {
@@ -362,6 +362,9 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
     }
     if (comp_c_remarks && typeof comp_c_remarks !== 'string') {
       return res.status(400).json({ status: 'error', message: 'comp_c_remarks must be a string' });
+    }
+    if (remarks && typeof remarks !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'remarks must be a string' });
     }
 
     // Check database connection
@@ -388,8 +391,8 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
     const [result] = await db.query(
       `
         INSERT INTO material_acknowledgement
-        (material_dispatch_id, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        (material_dispatch_id, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks, overall_quantity, remarks, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `,
       [
         dispatchId,
@@ -398,7 +401,9 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
         validatedCompCQty,
         comp_a_remarks || null,
         comp_b_remarks || null,
-        comp_c_remarks || null
+        comp_c_remarks || null,
+        validatedOverallQuantity,
+        remarks || null
       ]
     );
 
@@ -413,7 +418,9 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
         comp_c_qty: validatedCompCQty,
         comp_a_remarks: comp_a_remarks || null,
         comp_b_remarks: comp_b_remarks || null,
-        comp_c_remarks: comp_c_remarks || null
+        comp_c_remarks: comp_c_remarks || null,
+        overall_quantity: validatedOverallQuantity,
+        remarks: remarks || null
       }
     });
   } catch (error) {
@@ -446,7 +453,6 @@ exports.saveMaterialAcknowledgement = async (req, res) => {
 };
 
 
-
 exports.getAcknowledgementDetails = async (req, res) => {
   try {
     const { material_dispatch_id } = req.query;
@@ -476,6 +482,8 @@ exports.getAcknowledgementDetails = async (req, res) => {
         comp_a_remarks AS ack_comp_a_remarks,
         comp_b_remarks AS ack_comp_b_remarks,
         comp_c_remarks AS ack_comp_c_remarks,
+        overall_quantity AS ack_overall_quantity,
+        remarks AS ack_remarks,
         created_at AS ack_created_at,
         updated_at AS ack_updated_at
       FROM material_acknowledgement
@@ -495,6 +503,8 @@ exports.getAcknowledgementDetails = async (req, res) => {
         comp_a_remarks: row.ack_comp_a_remarks,
         comp_b_remarks: row.ack_comp_b_remarks,
         comp_c_remarks: row.ack_comp_c_remarks,
+        overall_quantity: row.ack_overall_quantity,
+        remarks: row.ack_remarks,
         created_at: row.ack_created_at,
         updated_at: row.ack_updated_at
       }
@@ -514,7 +524,6 @@ exports.getAcknowledgementDetails = async (req, res) => {
     });
   }
 };
-
 
 exports.saveMaterialUsage = async (req, res) => {
   try {
@@ -565,12 +574,12 @@ exports.saveMaterialUsage = async (req, res) => {
     }
 
     // Check if material_ack_id exists and get acknowledged quantities
-    const [ackRecord] = await db.query('SELECT comp_a_qty, comp_b_qty, comp_c_qty FROM material_acknowledgement WHERE id = ?', [ackId]);
+    const [ackRecord] = await db.query('SELECT overall_quantity FROM material_acknowledgement WHERE id = ?', [ackId]);
     if (ackRecord.length === 0) {
       return res.status(400).json({ status: 'error', message: `Invalid material_ack_id (${ackId}): record does not exist` });
     }
     const ack = ackRecord[0];
-    const sumAck = (ack.comp_a_qty || 0) + (ack.comp_b_qty || 0) + (ack.comp_c_qty || 0);
+    const sumAck = ack.overall_quantity || 0;
 
     // Validate new overall_qty won't exceed acknowledged sum
     const [currentUsage] = await db.query(
@@ -588,9 +597,8 @@ exports.saveMaterialUsage = async (req, res) => {
     // Insert into material_usage_history
     await db.query(
       `INSERT INTO material_usage_history 
-       (material_ack_id, entry_date, overall_qty, remarks, comp_a_qty, comp_b_qty, comp_c_qty, 
-        comp_a_remarks, comp_b_remarks, comp_c_remarks, created_by, created_at)
-       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, ?, NOW())`,
+       (material_ack_id, entry_date, overall_qty, remarks, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
       [
         ackId,
         entry_date,
@@ -607,9 +615,8 @@ exports.saveMaterialUsage = async (req, res) => {
       // Insert new record
       await db.query(
         `INSERT INTO material_usage 
-         (material_ack_id, overall_qty, remarks, comp_a_qty, comp_b_qty, comp_c_qty, 
-          comp_a_remarks, comp_b_remarks, comp_c_remarks, created_at, updated_at)
-         VALUES (?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW())`,
+         (material_ack_id, overall_qty, remarks, created_at, updated_at)
+         VALUES (?, ?, ?, NOW(), NOW())`,
         [
           ackId,
           validatedOverallQty,

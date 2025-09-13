@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Loader2, Package, FileText, X, Truck, ChevronDown } from "lucide-react";
@@ -194,7 +193,7 @@ const MaterialDispatch = () => {
   const fetchProjects = async () => {
     try {
       setLoading((prev) => ({ ...prev, projects: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/projects");
+      const response = await axios.get("http://localhost:5000/material/projects");
       setProjects(response.data.data || []);
       if (response.data.data.length > 0 && !selectedProject) {
         setSelectedProject(response.data.data[0].pd_id);
@@ -211,7 +210,7 @@ const MaterialDispatch = () => {
   const fetchSites = async (pd_id) => {
     try {
       setLoading((prev) => ({ ...prev, sites: true }));
-      const response = await axios.get(`http://103.118.158.127/api/material/sites/${pd_id}`);
+      const response = await axios.get(`http://localhost:5000/material/sites/${pd_id}`);
       setSites(response.data.data || []);
       if (response.data.data.length > 0 && !selectedSite) {
         setSelectedSite(response.data.data[0].site_id);
@@ -242,7 +241,7 @@ const MaterialDispatch = () => {
     if (!selectedSite) return;
     try {
       setLoading((prev) => ({ ...prev, dcNo: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/next-dc-no");
+      const response = await axios.get("http://localhost:5000/material/next-dc-no");
       setNextDcNo(response.data.data.next_dc_no || "");
       setDispatchData((prev) => ({
         ...prev,
@@ -262,7 +261,7 @@ const MaterialDispatch = () => {
   const fetchTransportTypes = async () => {
     try {
       setLoading((prev) => ({ ...prev, transportTypes: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/transport-types");
+      const response = await axios.get("http://localhost:5000/material/transport-types");
       setTransportTypes(response.data.data || []);
     } catch (error) {
       console.error("Error fetching transport types:", error);
@@ -276,7 +275,7 @@ const MaterialDispatch = () => {
   const fetchProviders = async (transport_type_id) => {
     try {
       setLoading((prev) => ({ ...prev, providers: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/providers", {
+      const response = await axios.get("http://localhost:5000/material/providers", {
         params: { transport_type_id: Number.isInteger(parseInt(transport_type_id)) ? transport_type_id : undefined },
       });
       setProviders(response.data.data || []);
@@ -292,7 +291,7 @@ const MaterialDispatch = () => {
   const fetchVehicles = async () => {
     try {
       setLoading((prev) => ({ ...prev, vehicles: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/vehicles");
+      const response = await axios.get("http://localhost:5000/material/vehicles");
       setVehicles(response.data.data || []);
     } catch (error) {
       console.error("Error fetching vehicles:", error);
@@ -306,7 +305,7 @@ const MaterialDispatch = () => {
   const fetchDrivers = async () => {
     try {
       setLoading((prev) => ({ ...prev, drivers: true }));
-      const response = await axios.get("http://103.118.158.127/api/material/drivers");
+      const response = await axios.get("http://localhost:5000/material/drivers");
       setDrivers(response.data.data || []);
     } catch (error) {
       console.error("Error fetching drivers:", error);
@@ -322,7 +321,7 @@ const MaterialDispatch = () => {
     try {
       setLoading((prev) => ({ ...prev, materials: true }));
       setError(null);
-      const response = await axios.get("http://103.118.158.127/api/material/assignments-with-dispatch", {
+      const response = await axios.get("http://localhost:5000/material/assignments-with-dispatch", {
         params: { pd_id: selectedProject, site_id: selectedSite },
       });
       const materials = response.data.data || [];
@@ -640,7 +639,7 @@ const MaterialDispatch = () => {
       };
 
       // Submit combined payload
-      const response = await axios.post("http://103.118.158.127/api/material/add-dispatch", payload);
+      const response = await axios.post("http://localhost:5000/material/add-dispatch", payload);
 
       if (response.data.status === "already_dispatched") {
         const conflicts = response.data.conflicts

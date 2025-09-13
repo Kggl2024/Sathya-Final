@@ -27,7 +27,7 @@ const Menubar = ({ onMobileMenuToggle }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://103.118.158.127/api/auth/logout');
+      await axios.post('http://localhost:5000/auth/logout');
       localStorage.removeItem('token');
       localStorage.removeItem('encodedUserId');
       localStorage.removeItem('loginTime');

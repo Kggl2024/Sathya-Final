@@ -1834,9 +1834,128 @@ exports.fetchMaterialAssignmentsWithDispatch = async (req, res) => {
 };
 
 
+// exports.fetchMaterialDispatchDetails = async (req, res) => {
+//   try {
+//     const { pd_id, site_id } = req.query;
+//     let query = `
+//       SELECT 
+//         md.id,
+//         md.material_assign_id,
+//         md.dc_no,
+//         md.dispatch_date,
+//         md.order_no,
+//         c.vendor_code, -- Fetch vendor_code from company table
+//         c.gst_number, -- Fetch gst_number from company table
+//         md.comp_a_qty,
+//         md.comp_b_qty,
+//         md.comp_c_qty,
+//         md.comp_a_remarks,
+//         md.comp_b_remarks,
+//         md.comp_c_remarks,
+//         md.created_at,
+//         ma.quantity AS assigned_quantity,
+//         ma.comp_ratio_a,
+//         ma.comp_ratio_b,
+//         ma.comp_ratio_c,
+//         pd.project_name,
+//         sd.site_name,
+//         sd.po_number,
+//         mm.item_name,
+//         um.uom_name,
+//         JSON_OBJECT(
+//           'id', tm.id,
+//           'destination', tm.destination,
+//           'booking_expense', tm.booking_expense,
+//           'travel_expense', tm.travel_expense,
+//           'dispatch_id', tm.dispatch_id,
+//           'created_at', tm.created_at,
+//           'vehicle', JSON_OBJECT(
+//             'id', vm.id,
+//             'vehicle_name', vm.vehicle_name,
+//             'vehicle_model', vm.vehicle_model,
+//             'vehicle_number', vm.vehicle_number
+//           ),
+//           'driver', JSON_OBJECT(
+//             'id', dm.id,
+//             'driver_name', dm.driver_name,
+//             'driver_mobile', dm.driver_mobile,
+//             'driver_address', dm.driver_address
+//           ),
+//           'provider', JSON_OBJECT(
+//             'id', pm.id,
+//             'provider_name', pm.provider_name,
+//             'address', pm.address,
+//             'mobile', pm.mobile,
+//             'transport_type_id', pm.transport_type_id
+//           )
+//         ) AS transport_details
+//       FROM material_dispatch md
+//       JOIN material_assign ma ON md.material_assign_id = ma.id
+//       JOIN project_details pd ON ma.pd_id = pd.pd_id
+//       JOIN site_details sd ON ma.site_id = sd.site_id
+//       JOIN material_master mm ON ma.item_id = mm.item_id
+//       JOIN uom_master um ON ma.uom_id = um.uom_id
+//       LEFT JOIN transport_master tm ON md.id = tm.dispatch_id
+//       LEFT JOIN vehicle_master vm ON tm.vehicle_id = vm.id
+//       LEFT JOIN driver_master dm ON tm.driver_id = dm.id
+//       LEFT JOIN provider_master pm ON tm.provider_id = pm.id
+//       LEFT JOIN company c ON pd.company_id = c.company_id
+//     `;
+//     const queryParams = [];
+
+//     if (pd_id && site_id) {
+//       query += ' WHERE ma.pd_id = ? AND ma.site_id = ?';
+//       queryParams.push(pd_id, site_id);
+//     } else {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Both pd_id and site_id are required',
+//       });
+//     }
+
+//     // Fetch order_date from po_reckoner table
+//     const [poRows] = await db.query(
+//       `
+//       SELECT created_at AS order_date
+//       FROM po_reckoner
+//       WHERE site_id = ?
+//       LIMIT 1
+//       `,
+//       [site_id]
+//     );
+
+//     const order_date = poRows.length > 0 ? poRows[0].order_date : null;
+
+//     const [rows] = await db.query(query, queryParams);
+
+//     // Add order_date to each row
+//     const formattedData = rows.map(row => ({
+//       ...row,
+//       order_date: order_date ? order_date.toISOString() : 'N/A',
+//       vendor_code: row.vendor_code || 'N/A',
+//       gst_number: row.gst_number || 'N/A'
+//     }));
+
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'Material dispatch details fetched successfully',
+//       data: formattedData,
+//     });
+//   } catch (error) {
+//     console.error('Fetch dispatch details error:', error);
+//     res.status(500).json({
+//       status: 'error',
+//       message: 'Internal server error',
+//       error: error.message,
+//       sqlMessage: error.sqlMessage || 'No SQL message available',
+//     });
+//   }
+// };
+
+
 exports.fetchMaterialDispatchDetails = async (req, res) => {
   try {
-    const { pd_id, site_id } = req.query;
+    const { pd_id, site_id, desc_id } = req.query;
     let query = `
       SELECT 
         md.id,
@@ -1857,6 +1976,9 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
         ma.comp_ratio_a,
         ma.comp_ratio_b,
         ma.comp_ratio_c,
+        ma.desc_id, -- Fetch desc_id from material_assign
+        wd.desc_name, -- Fetch desc_name from work_descriptions
+        mm.item_id, -- Fetch item_id from material_master
         pd.project_name,
         sd.site_name,
         sd.po_number,
@@ -1895,6 +2017,7 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
       JOIN site_details sd ON ma.site_id = sd.site_id
       JOIN material_master mm ON ma.item_id = mm.item_id
       JOIN uom_master um ON ma.uom_id = um.uom_id
+      LEFT JOIN work_descriptions wd ON ma.desc_id = wd.desc_id
       LEFT JOIN transport_master tm ON md.id = tm.dispatch_id
       LEFT JOIN vehicle_master vm ON tm.vehicle_id = vm.id
       LEFT JOIN driver_master dm ON tm.driver_id = dm.id
@@ -1903,13 +2026,13 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
     `;
     const queryParams = [];
 
-    if (pd_id && site_id) {
-      query += ' WHERE ma.pd_id = ? AND ma.site_id = ?';
-      queryParams.push(pd_id, site_id);
+    if (pd_id && site_id && desc_id) {
+      query += ' WHERE ma.pd_id = ? AND ma.site_id = ? AND ma.desc_id = ?';
+      queryParams.push(pd_id, site_id, desc_id);
     } else {
       return res.status(400).json({
         status: 'error',
-        message: 'Both pd_id and site_id are required',
+        message: 'pd_id, site_id, and desc_id are required',
       });
     }
 
@@ -1933,7 +2056,10 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
       ...row,
       order_date: order_date ? order_date.toISOString() : 'N/A',
       vendor_code: row.vendor_code || 'N/A',
-      gst_number: row.gst_number || 'N/A'
+      gst_number: row.gst_number || 'N/A',
+      desc_id: row.desc_id || null,
+      desc_name: row.desc_name || 'N/A',
+      item_id: row.item_id || 'N/A'
     }));
 
     res.status(200).json({
@@ -1950,8 +2076,7 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
       sqlMessage: error.sqlMessage || 'No SQL message available',
     });
   }
-};
-
+};  
 
 exports.getTransportTypes = async function(req, res) {
   try {
