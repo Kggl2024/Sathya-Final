@@ -35,7 +35,7 @@ const DispatchReport = ({ commonDispatchDetails = {}, dispatchedMaterials = [] }
   useEffect(() => {
     const fetchInchargeData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/material/assigned-incharges');
+        const response = await fetch('http://103.118.158.127/api/material/assigned-incharges');
         const result = await response.json();
         if (result.status === 'success') {
           // Convert dispatch_date to a comparable format (assuming dispatch_date is in DD.MM.YYYY format)

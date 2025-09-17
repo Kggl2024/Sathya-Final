@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Select from "react-select";
@@ -25,23 +27,11 @@ const ProjectProjection = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Call calculate-labour-budget API on component mount
-  useEffect(() => {
-    const callCalculateLabourBudget = async () => {
-      try {
-        await axios.get("http://localhost:5000/site-incharge/calculate-labour-budget");
-      } catch (error) {
-        console.error("Error calling calculate-labour-budget API:", error.message);
-      }
-    };
-    callCalculateLabourBudget();
-  }, []);
-
   // Fetch companies
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:5000/admin/companies");
+      const response = await axios.get("http://103.118.158.127/api/admin/companies");
       if (response.data.success) {
         const companyOptions = response.data.data.map((company) => ({
           value: company.company_id,
@@ -66,7 +56,7 @@ const ProjectProjection = () => {
   const fetchProjects = async (companyId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
+      const response = await axios.get(`http://103.118.158.127/api/admin/projects/${companyId}`);
       if (response.data.success) {
         const projectOptions = response.data.data.map((project) => ({
           value: project.pd_id,
@@ -91,7 +81,7 @@ const ProjectProjection = () => {
   const fetchSites = async (projectId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
+      const response = await axios.get(`http://103.118.158.127/api/admin/sites/${projectId}`);
       if (response.data.success) {
         const siteOptions = response.data.data.map((site) => ({
           value: site.site_id,
@@ -117,7 +107,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
+        `http://103.118.158.127/api/admin/work-descriptions-by-site/${siteId}`
       );
       if (response.data.success) {
         const descOptions = response.data.data.map((desc) => ({
@@ -144,7 +134,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/admin/po-total-budget/${siteId}/${descId}`
+        `http://103.118.158.127/api/admin/po-total-budget/${siteId}/${descId}`
       );
       if (response.data.success) {
         setBudgetData({
@@ -166,7 +156,7 @@ const ProjectProjection = () => {
   // Check if budget exists for site_id and desc_id
   const checkBudgetExists = async (siteId, descId) => {
     try {
-      const response = await axios.get("http://localhost:5000/admin/po-budget", {
+      const response = await axios.get("http://103.118.158.127/api/admin/po-budget", {
         params: { site_id: siteId, desc_id: descId },
       });
       if (response.data.success && response.data.data) {
@@ -199,7 +189,7 @@ const ProjectProjection = () => {
   // Fetch overheads and initialize actualBudgetEntries
   const fetchOverheads = async (po_budget_id) => {
     try {
-      const response = await axios.get("http://localhost:5000/admin/overheads", {
+      const response = await axios.get("http://103.118.158.127/api/admin/overheads", {
         params: po_budget_id ? { po_budget_id } : {},
       });
       if (response.data.success) {
@@ -233,7 +223,7 @@ const ProjectProjection = () => {
   // Fetch actual budget entries
   const fetchActualBudgetEntries = async (po_budget_id) => {
     try {
-      const response = await axios.get(`http://localhost:5000/admin/actual-budget/${po_budget_id}`);
+      const response = await axios.get(`http://103.118.158.127/api/admin/actual-budget/${po_budget_id}`);
       if (response.data.success) {
         const entries = response.data.data || {};
         const processedEntries = {};
@@ -269,7 +259,7 @@ const ProjectProjection = () => {
   // Save budget details to backend
   const savePoBudget = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/admin/save-po-budget", {
+      const response = await axios.post("http://103.118.158.127/api/admin/save-po-budget", {
         site_id: selectedSite.value,
         desc_id: selectedWorkDescription.value,
         total_po_value: budgetData.total_po_value,
@@ -328,7 +318,7 @@ const ProjectProjection = () => {
 
     if (expense_name) {
       try {
-        const response = await axios.post("http://localhost:5000/admin/save-overhead", {
+        const response = await axios.post("http://103.118.158.127/api/admin/save-overhead", {
           expense_name,
         });
         if (response.data.success) {
@@ -381,63 +371,6 @@ const ProjectProjection = () => {
     }
   };
 
-  // Auto distribute budget evenly among checked expenses
-  const autoDistribute = () => {
-    if (!existingBudget || !existingBudget.total_budget_value) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No valid budget exists to distribute.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    const checkedIds = Object.keys(checkedExpenses)
-      .filter((id) => checkedExpenses[id])
-      .map((id) => parseInt(id));
-
-    const checkedCount = checkedIds.length;
-    if (checkedCount === 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "At least one expense must be checked.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    const total = existingBudget.total_budget_value;
-    const baseValue = (total / checkedCount).toFixed(2);
-    let totalAssigned = 0;
-
-    setActualBudgetEntries((prev) => {
-      const newEntries = { ...prev };
-      checkedIds.forEach((id, idx) => {
-        let assigned = parseFloat(baseValue);
-        if (idx === checkedCount - 1) {
-          assigned = total - totalAssigned;
-          assigned = assigned.toFixed(2);
-        } else {
-          totalAssigned += assigned;
-        }
-        const perc = (parseFloat(assigned) / total * 100).toFixed(2);
-        newEntries[id] = {
-          ...newEntries[id],
-          splitted_budget: assigned,
-          percentage: perc,
-          edited: true,
-        };
-      });
-      return newEntries;
-    });
-  };
-
   // Allocate budget
   const allocateBudget = async () => {
     if (!existingBudget || !existingBudget.total_budget_value) {
@@ -458,6 +391,19 @@ const ProjectProjection = () => {
         icon: "error",
         title: "Error",
         text: "At least one expense must be checked.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    const { sumPerc, sumBudget } = computeSums();
+    if (Math.abs(sumPerc - 100) > 0.01) {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `Total budget percentage must equal 100%. Current total: ${sumPerc.toFixed(2)}%.`,
         confirmButtonColor: "#4f46e5",
         timer: 3000,
         timerProgressBar: true,
@@ -488,7 +434,7 @@ const ProjectProjection = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/admin/save-actual-budget", {
+      const response = await axios.post("http://103.118.158.127/api/admin/save-actual-budget", {
         po_budget_id: existingBudget.id,
         actual_budget_entries: entries,
       });
@@ -502,6 +448,13 @@ const ProjectProjection = () => {
           timerProgressBar: true,
         });
         await fetchActualBudgetEntries(existingBudget.id);
+        
+        // Call calculate-labour-budget API after successful allocation
+        try {
+          await axios.get("http://103.118.158.127/api/site-incharge/calculate-labour-budget");
+        } catch (error) {
+          console.error("Error calling calculate-labour-budget API:", error.message);
+        }
       } else {
         await Swal.fire({
           icon: "error",
@@ -632,120 +585,120 @@ const ProjectProjection = () => {
   };
 
   // Handle percentage change for individual expense
-const handlePercentageChange = (id, value) => {
-  let perc = value === '' ? '' : parseFloat(value);
-  if (value === '' || isNaN(perc) || perc < 0) {
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Percentage cannot be negative or invalid.",
-      confirmButtonColor: "#4f46e5",
-      timer: 3000,
-      timerProgressBar: true,
-    });
-    return;
-  }
-  if (perc > 100) {
-    perc = 100;
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Percentage cannot exceed 100%.",
-      confirmButtonColor: "#4f46e5",
-      timer: 3000,
-      timerProgressBar: true,
-    });
-  }
+  const handlePercentageChange = (id, value) => {
+    let perc = value === "" ? "" : parseFloat(value);
+    if (value === "" || isNaN(perc) || perc < 0) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Percentage cannot be negative or invalid.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+    if (perc > 100) {
+      perc = 100;
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Percentage cannot exceed 100%.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
 
-  const total = existingBudget.total_budget_value;
-  const newValue = (perc / 100 * total).toFixed(2);
+    const total = existingBudget.total_budget_value;
+    const newValue = ((perc / 100) * total).toFixed(2);
 
-  setActualBudgetEntries((prev) => ({
-    ...prev,
-    [id]: {
-      ...prev[id],
-      percentage: value, // Store as entered (integer or with decimal if provided)
-      splitted_budget: newValue,
-      edited: true,
-    },
-  }));
-};
+    setActualBudgetEntries((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        percentage: value,
+        splitted_budget: newValue,
+        edited: true,
+      },
+    }));
+  };
 
   // Handle budgeted value change for individual expense
- const handleSplittedBudgetChange = (id, value) => {
-  let val = parseFloat(value);
-  if (isNaN(val) || val < 0) {
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Budget value cannot be negative.",
-      confirmButtonColor: "#4f46e5",
-      timer: 3000,
-      timerProgressBar: true,
-    });
-    return;
-  }
-  const total = existingBudget.total_budget_value;
-  if (val > total) {
-    val = total;
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: `Budget value cannot exceed Rs.${total.toFixed(2)}.`,
-      confirmButtonColor: "#4f46e5",
-      timer: 3000,
-      timerProgressBar: true,
-    });
-  }
+  const handleSplittedBudgetChange = (id, value) => {
+    let val = parseFloat(value);
+    if (isNaN(val) || val < 0) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Budget value cannot be negative.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+    const total = existingBudget.total_budget_value;
+    if (val > total) {
+      val = total;
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `Budget value cannot exceed Rs.${total.toFixed(2)}.`,
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
 
-  const perc = (val / total * 100).toFixed(2);
+    const perc = (val / total * 100).toFixed(2);
 
-  setActualBudgetEntries((prev) => ({
-    ...prev,
-    [id]: {
-      ...prev[id],
-      splitted_budget: val.toFixed(2),
-      percentage: perc.includes('.') ? perc : parseInt(perc).toString(), // Store as integer unless decimal exists
-      edited: true,
-    },
-  }));
-};
+    setActualBudgetEntries((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        splitted_budget: val.toFixed(2),
+        percentage: perc.includes(".") ? perc : parseInt(perc).toString(),
+        edited: true,
+      },
+    }));
+  };
 
   // Compute sums for validation
-const computeSums = () => {
-  let sumPerc = 0;
-  let sumBudget = 0;
-  Object.keys(checkedExpenses).forEach((id) => {
-    if (checkedExpenses[id]) {
-      sumPerc += parseFloat(actualBudgetEntries[id]?.percentage || 0);
-      sumBudget += parseFloat(actualBudgetEntries[id]?.splitted_budget || 0);
-    }
-  });
-  return { sumPerc, sumBudget };
-};
-
-// Handle form submission
-const handleSubmit = async () => {
-  if (
-    selectedCompany &&
-    selectedProject &&
-    selectedSite &&
-    selectedWorkDescription &&
-    budgetPercentage &&
-    budgetValue
-  ) {
-    await savePoBudget(); // Corrected: Added space between `await` and `savePoBudget`
-  } else {
-    await Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Please select all fields and enter budget details before submitting.",
-      confirmButtonColor: "#4f46e5",
-      timer: 3000,
-      timerProgressBar: true,
+  const computeSums = () => {
+    let sumPerc = 0;
+    let sumBudget = 0;
+    Object.keys(checkedExpenses).forEach((id) => {
+      if (checkedExpenses[id]) {
+        sumPerc += parseFloat(actualBudgetEntries[id]?.percentage || 0);
+        sumBudget += parseFloat(actualBudgetEntries[id]?.splitted_budget || 0);
+      }
     });
-  }
-};
+    return { sumPerc, sumBudget };
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (
+      selectedCompany &&
+      selectedProject &&
+      selectedSite &&
+      selectedWorkDescription &&
+      budgetPercentage &&
+      budgetValue
+    ) {
+      await savePoBudget();
+    } else {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Please select all fields and enter budget details before submitting.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
+  };
 
   // Load companies on mount
   useEffect(() => {
@@ -887,7 +840,7 @@ const handleSubmit = async () => {
         const actualValue = Object.values(actualBudgetEntries)
           .filter((entry) => entry.actual_value !== null)
           .reduce((sum, entry) => sum + parseFloat(entry.actual_value || 0), 0);
-        const balanceValue = budgetedValue - actualValue; // Total Budgeted - Total Actual
+        const balanceValue = budgetedValue - actualValue;
 
         return [
           { name: "Budgeted Value", value: budgetedValue, fill: "#92c352" },
@@ -914,14 +867,14 @@ const handleSubmit = async () => {
       };
     });
 
-const { sumPerc, sumBudget } = computeSums();
-const total = existingBudget?.total_budget_value || 0;
-const percDiff = sumPerc - 100;
-const budgetDiff = sumBudget - total;
-const percError = percDiff > 0.01 ? `Excess by ${percDiff.toFixed(2)}%` : percDiff < -0.01 ? `Short by ${Math.abs(percDiff).toFixed(2)}%` : '';
-const budgetError = budgetDiff > 0.01 ? `Excess by Rs.${budgetDiff.toFixed(2)}` : budgetDiff < -0.01 ? `Short by Rs.${Math.abs(budgetDiff).toFixed(2)}` : '';
-const isValid = Math.abs(budgetDiff) <= 0.01;
-const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted value allocated successfully!' : '';
+  const { sumPerc, sumBudget } = computeSums();
+  const total = existingBudget?.total_budget_value || 0;
+  const percDiff = sumPerc - 100;
+  const budgetDiff = sumBudget - total;
+  const percError = percDiff > 0.01 ? `Excess by ${percDiff.toFixed(2)}%` : percDiff < -0.01 ? `Short by ${Math.abs(percDiff).toFixed(2)}%` : "";
+  const budgetError = budgetDiff > 0.01 ? `Excess by Rs.${budgetDiff.toFixed(2)}` : budgetDiff < -0.01 ? `Short by Rs.${Math.abs(budgetDiff).toFixed(2)}` : "";
+  const isValid = Math.abs(sumPerc - 100) <= 0.01 && Math.abs(budgetDiff) <= 0.01;
+  const successMessage = isValid ? "100% of budgeted value allocated successfully!" : "";
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -1148,16 +1101,16 @@ const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted
                           </button>
                         )}
                       </th>
-<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
-  Budget Percentage (%)
-  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
-  {percError && !successMessage && <span className="block text-red-500 text-xs">{percError}</span>}
-</th>
-<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
-  Budgeted Value (Rs.)
-  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
-  {budgetError && !successMessage && <span className="block text-red-500 text-xs">{budgetError}</span>}
-</th>
+                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+                        Budget Percentage (%)
+                        {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+                        {percError && !successMessage && <span className="block text-red-500 text-xs">{percError}</span>}
+                      </th>
+                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+                        Budgeted Value (Rs.)
+                        {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+                        {budgetError && !successMessage && <span className="block text-red-500 text-xs">{budgetError}</span>}
+                      </th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Actual Value (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Balance (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Remarks</th>
@@ -1171,7 +1124,7 @@ const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted
                       .map((overhead, index) => {
                         const budgeted = parseFloat(actualBudgetEntries[overhead.id]?.splitted_budget) || 0;
                         const actual = parseFloat(actualBudgetEntries[overhead.id]?.actual_value) || 0;
-                        const balance = budgeted - actual; // Budgeted - Actual for each expense
+                        const balance = budgeted - actual;
                         return (
                           <tr key={overhead.id}>
                             <td className="py-2 px-4 border-b text-sm text-gray-800">{index + 1}</td>
@@ -1268,21 +1221,13 @@ const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted
                 </div>
               )}
               {!isAllocated && (
-                <>
-                  <button
-                    onClick={autoDistribute}
-                    className="mt-4 mr-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-                  >
-                    Auto Distribute
-                  </button>
-                  <button
-                    onClick={allocateBudget}
-                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    disabled={!isValid}
-                  >
-                    Allocate Budget
-                  </button>
-                </>
+                <button
+                  onClick={allocateBudget}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+                  disabled={!isValid}
+                >
+                  Allocate Budget
+                </button>
               )}
             </div>
           )}
