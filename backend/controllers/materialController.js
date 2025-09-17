@@ -897,8 +897,6 @@ exports.getAssignedMaterials = async (req, res) => {
 
 
 
-
-
 // exports.assignMaterial = async (req, res) => {
 //   try {
 //     const assignments = Array.isArray(req.body) ? req.body : [req.body];
@@ -906,7 +904,7 @@ exports.getAssignedMaterials = async (req, res) => {
 //     // Validate each assignment
 //     const validationErrors = [];
 //     assignments.forEach((assignment, index) => {
-//       const { pd_id, site_id, item_id, uom_id, quantity, comp_ratio_a, comp_ratio_b, comp_ratio_c } = assignment;
+//       const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c } = assignment;
 
 //       if (!pd_id || typeof pd_id !== 'string' || pd_id.trim() === '') {
 //         validationErrors.push(`Assignment ${index + 1}: pd_id is required and must be a non-empty string`);
@@ -922,6 +920,9 @@ exports.getAssignedMaterials = async (req, res) => {
 //       }
 //       if (!Number.isInteger(quantity) || quantity <= 0) {
 //         validationErrors.push(`Assignment ${index + 1}: quantity is required and must be a positive integer`);
+//       }
+//       if (!desc_id || typeof desc_id !== 'string' || desc_id.trim() === '') {
+//         validationErrors.push(`Assignment ${index + 1}: desc_id is required and must be a non-empty string`);
 //       }
 //       if (comp_ratio_a !== null && (!Number.isInteger(comp_ratio_a) || comp_ratio_a < 0)) {
 //         validationErrors.push(`Assignment ${index + 1}: comp_ratio_a must be a non-negative integer or null`);
@@ -943,10 +944,10 @@ exports.getAssignedMaterials = async (req, res) => {
 //     }
 
 //     const insertedIds = [];
-//     for (const { pd_id, site_id, item_id, uom_id, quantity, comp_ratio_a, comp_ratio_b, comp_ratio_c } of assignments) {
+//     for (const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c } of assignments) {
 //       const [result] = await db.query(
-//         'INSERT INTO material_assign (pd_id, site_id, item_id, uom_id, quantity, comp_ratio_a, comp_ratio_b, comp_ratio_c, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-//         [pd_id, site_id, item_id, uom_id, quantity, comp_ratio_a, comp_ratio_b, comp_ratio_c]
+//         'INSERT INTO material_assign (pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+//         [pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c]
 //       );
 //       insertedIds.push(result.insertId);
 //     }
@@ -961,7 +962,7 @@ exports.getAssignedMaterials = async (req, res) => {
 //     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
 //       return res.status(400).json({
 //         status: 'error',
-//         message: 'Invalid reference: pd_id, site_id, item_id, or uom_id does not exist in the database',
+//         message: 'Invalid reference: pd_id, site_id, item_id, uom_id, or desc_id does not exist in the database',
 //       });
 //     }
 //     res.status(500).json({
@@ -972,6 +973,7 @@ exports.getAssignedMaterials = async (req, res) => {
 //   }
 // };
 
+
 exports.assignMaterial = async (req, res) => {
   try {
     const assignments = Array.isArray(req.body) ? req.body : [req.body];
@@ -979,7 +981,7 @@ exports.assignMaterial = async (req, res) => {
     // Validate each assignment
     const validationErrors = [];
     assignments.forEach((assignment, index) => {
-      const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c } = assignment;
+      const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, rate } = assignment;
 
       if (!pd_id || typeof pd_id !== 'string' || pd_id.trim() === '') {
         validationErrors.push(`Assignment ${index + 1}: pd_id is required and must be a non-empty string`);
@@ -1008,6 +1010,9 @@ exports.assignMaterial = async (req, res) => {
       if (comp_ratio_c !== null && (!Number.isInteger(comp_ratio_c) || comp_ratio_c < 0)) {
         validationErrors.push(`Assignment ${index + 1}: comp_ratio_c must be a non-negative integer or null`);
       }
+      if (rate === undefined || typeof rate !== 'number' || rate < 0 || isNaN(rate)) {
+        validationErrors.push(`Assignment ${index + 1}: rate is required and must be a non-negative number`);
+      }
     });
 
     if (validationErrors.length > 0) {
@@ -1019,10 +1024,17 @@ exports.assignMaterial = async (req, res) => {
     }
 
     const insertedIds = [];
-    for (const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c } of assignments) {
+    for (const { pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, rate } of assignments) {
+      const parsed_desc_id = parseInt(desc_id);
+      if (isNaN(parsed_desc_id)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Invalid desc_id: must be convertible to integer`,
+        });
+      }
       const [result] = await db.query(
-        'INSERT INTO material_assign (pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-        [pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c]
+        'INSERT INTO material_assign (pd_id, site_id, item_id, uom_id, quantity, desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, rate, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+        [pd_id, site_id, item_id, uom_id, quantity, parsed_desc_id, comp_ratio_a, comp_ratio_b, comp_ratio_c, rate]
       );
       insertedIds.push(result.insertId);
     }
@@ -1047,8 +1059,6 @@ exports.assignMaterial = async (req, res) => {
     });
   }
 };
-
-
 exports.checkDescAssigned = async (req, res) => {
   try {
     const { site_id, desc_id } = req.query;
@@ -1171,329 +1181,6 @@ exports.getNextDcNo = async function (req, res) {
   }
 };
 
-
-
-// exports.addMaterialDispatch = async (req, res) => {
-//   const connection = await db.getConnection();
-//   try {
-//     await connection.beginTransaction();
-
-//     const { assignments, transport } = req.body;
-
-//     // Validate dispatch assignments (if provided)
-//     let dispatchInsertedIds = [];
-//     if (assignments && Array.isArray(assignments) && assignments.length > 0) {
-//       const validationErrors = [];
-//       assignments.forEach((assignment, index) => {
-//         const { material_assign_id, dc_no, dispatch_date, order_no, vendor_code, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks } = assignment;
-
-//         if (!material_assign_id || isNaN(material_assign_id)) {
-//           validationErrors.push(`Assignment ${index + 1}: material_assign_id is required and must be a number`);
-//         }
-//         if (!dc_no || isNaN(dc_no)) {
-//           validationErrors.push(`Assignment ${index + 1}: dc_no is required and must be a number`);
-//         }
-//         if (!dispatch_date || !/^\d{4}-\d{2}-\d{2}$/.test(dispatch_date)) {
-//           validationErrors.push(`Assignment ${index + 1}: dispatch_date is required and must be in YYYY-MM-DD format`);
-//         }
-//         if (!order_no || typeof order_no !== 'string' || order_no.trim() === '') {
-//           validationErrors.push(`Assignment ${index + 1}: order_no is required and must be a non-empty string`);
-//         }
-//         if (!vendor_code || typeof vendor_code !== 'string' || vendor_code.trim() === '') {
-//           validationErrors.push(`Assignment ${index + 1}: vendor_code is required and must be a non-empty string`);
-//         }
-//         if (comp_a_qty !== null && (!Number.isInteger(comp_a_qty) || comp_a_qty < 0)) {
-//           validationErrors.push(`Assignment ${index + 1}: comp_a_qty must be a non-negative integer or null`);
-//         }
-//         if (comp_b_qty !== null && (!Number.isInteger(comp_b_qty) || comp_b_qty < 0)) {
-//           validationErrors.push(`Assignment ${index + 1}: comp_b_qty must be a non-negative integer or null`);
-//         }
-//         if (comp_c_qty !== null && (!Number.isInteger(comp_c_qty) || comp_c_qty < 0)) {
-//           validationErrors.push(`Assignment ${index + 1}: comp_c_qty must be a non-negative integer or null`);
-//         }
-//         if (comp_a_remarks !== null && typeof comp_a_remarks !== 'string') {
-//           validationErrors.push(`Assignment ${index + 1}: comp_a_remarks must be a string or null`);
-//         }
-//         if (comp_b_remarks !== null && typeof comp_b_remarks !== 'string') {
-//           validationErrors.push(`Assignment ${index + 1}: comp_b_remarks must be a string or null`);
-//         }
-//         if (comp_c_remarks !== null && typeof comp_c_remarks !== 'string') {
-//           validationErrors.push(`Assignment ${index + 1}: comp_c_remarks must be a string or null`);
-//         }
-//       });
-
-//       if (validationErrors.length > 0) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           status: 'error',
-//           message: 'Validation errors in dispatch assignments',
-//           errors: validationErrors,
-//         });
-//       }
-
-//       // Check for already dispatched assignments
-//       const materialAssignIds = assignments.map(a => a.material_assign_id);
-//       const [existingDispatches] = await connection.query(
-//         `SELECT md.material_assign_id, mm.item_name
-//          FROM material_dispatch md
-//          JOIN material_assign ma ON md.material_assign_id = ma.id
-//          JOIN material_master mm ON ma.item_id = mm.item_id
-//          WHERE md.material_assign_id IN (?)`,
-//         [materialAssignIds]
-//       );
-
-//       if (existingDispatches.length > 0) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           status: 'already_dispatched',
-//           message: 'Some materials have already been dispatched',
-//           conflicts: existingDispatches.map(d => ({
-//             material_assign_id: d.material_assign_id,
-//             item_name: d.item_name
-//           }))
-//         });
-//       }
-
-//       // Insert dispatch assignments
-//       dispatchInsertedIds = [];
-//       for (const { material_assign_id, dc_no, dispatch_date, order_no, vendor_code, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks } of assignments) {
-//         // Fetch desc_id from material_assign
-//         const [maRow] = await connection.query('SELECT desc_id FROM material_assign WHERE id = ?', [material_assign_id]);
-//         if (maRow.length === 0) {
-//           await connection.rollback();
-//           return res.status(400).json({
-//             status: 'error',
-//             message: `Invalid material_assign_id: ${material_assign_id} does not exist`
-//           });
-//         }
-//         const desc_id = maRow[0].desc_id;
-
-//         const [result] = await connection.query(
-//           'INSERT INTO material_dispatch (material_assign_id, desc_id, dc_no, dispatch_date, order_no, vendor_code, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-//           [material_assign_id, desc_id, dc_no, dispatch_date, order_no, vendor_code, comp_a_qty, comp_b_qty, comp_c_qty, comp_a_remarks, comp_b_remarks, comp_c_remarks]
-//         );
-//         dispatchInsertedIds.push({ material_assign_id, dispatch_id: result.insertId });
-//       }
-//     }
-
-//     // Validate and insert transport details (if assignments exist)
-//     let transportInsertedIds = [];
-//     if (dispatchInsertedIds.length > 0 && transport) {
-//       let { transport_type_id, provider_id, vehicle_id, driver_id, destination, booking_expense, travel_expense, provider_address, provider_mobile, vehicle_model, vehicle_number, driver_mobile, driver_address } = transport;
-
-//       // Validate transport fields
-//       const transportValidationErrors = [];
-//       if (!transport_type_id || isNaN(transport_type_id)) {
-//         transportValidationErrors.push('Transport: transport_type_id is required and must be a number');
-//       } else {
-//         const [typeExists] = await connection.query('SELECT id FROM transport_type WHERE id = ? AND id IN (1, 2)', [transport_type_id]);
-//         if (!typeExists.length) {
-//           transportValidationErrors.push('Transport: transport_type_id must be 1 (Own Vehicle) or 2 (Rental Vehicle)');
-//         }
-//       }
-//       if (!provider_id || (typeof provider_id === 'string' && provider_id.trim() === '')) {
-//         transportValidationErrors.push('Transport: provider_id is required and must be a non-empty string or number');
-//       }
-//       if (!vehicle_id || (typeof vehicle_id === 'string' && vehicle_id.trim() === '')) {
-//         transportValidationErrors.push('Transport: vehicle_id is required and must be a non-empty string or number');
-//       }
-//       if (!driver_id || (typeof driver_id === 'string' && driver_id.trim() === '')) {
-//         transportValidationErrors.push('Transport: driver_id is required and must be a non-empty string or number');
-//       }
-//       if (!destination || typeof destination !== 'string' || destination.trim() === '') {
-//         transportValidationErrors.push('Transport: destination is required and must be a non-empty string');
-//       }
-//       if (transport_type_id === 2 && (booking_expense === null || isNaN(booking_expense) || booking_expense < 0)) {
-//         transportValidationErrors.push('Transport: booking_expense is required for Rental Vehicle and must be a non-negative number');
-//       }
-//       if (booking_expense !== null && (isNaN(booking_expense) || booking_expense < 0)) {
-//         transportValidationErrors.push('Transport: booking_expense must be a non-negative number or null');
-//       }
-//       if (!travel_expense || isNaN(travel_expense) || travel_expense < 0) {
-//         transportValidationErrors.push('Transport: travel_expense is required and must be a non-negative number');
-//       }
-
-//       if (transportValidationErrors.length > 0) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           status: 'error',
-//           message: 'Validation errors in transport details',
-//           errors: transportValidationErrors,
-//         });
-//       }
-
-//       // Handle provider_id
-//       if (typeof provider_id === 'string') {
-//         const [existingProvider] = await connection.query('SELECT id FROM provider_master WHERE provider_name = ?', [provider_id]);
-//         if (existingProvider.length > 0) {
-//           provider_id = existingProvider[0].id;
-//         } else {
-//           const [result] = await connection.query(
-//             'INSERT INTO provider_master (provider_name, address, mobile, transport_type_id) VALUES (?, ?, ?, ?)',
-//             [provider_id, provider_address || null, provider_mobile || null, transport_type_id]
-//           );
-//           provider_id = result.insertId;
-//         }
-//       } else {
-//         const [providerExists] = await connection.query('SELECT id FROM provider_master WHERE id = ?', [provider_id]);
-//         if (!providerExists.length) {
-//           await connection.rollback();
-//           return res.status(400).json({
-//             status: 'error',
-//             message: 'Invalid provider_id: Provider does not exist',
-//           });
-//         }
-//       }
-
-//       // Handle vehicle_id
-//       if (typeof vehicle_id === 'string') {
-//         const [existingVehicle] = await connection.query('SELECT id FROM vehicle_master WHERE vehicle_name = ? OR vehicle_number = ?', [vehicle_id, vehicle_id]);
-//         if (existingVehicle.length > 0) {
-//           vehicle_id = existingVehicle[0].id;
-//         } else {
-//           const [result] = await connection.query(
-//             'INSERT INTO vehicle_master (vehicle_name, vehicle_model, vehicle_number) VALUES (?, ?, ?)',
-//             [vehicle_id, vehicle_model || null, vehicle_number || vehicle_id]
-//           );
-//           vehicle_id = result.insertId;
-//         }
-//       } else {
-//         const [vehicleExists] = await connection.query('SELECT id FROM vehicle_master WHERE id = ?', [vehicle_id]);
-//         if (!vehicleExists.length) {
-//           await connection.rollback();
-//           return res.status(400).json({
-//             status: 'error',
-//             message: 'Invalid vehicle_id: Vehicle does not exist',
-//           });
-//         }
-//       }
-
-//       // Handle driver_id
-//       if (typeof driver_id === 'string') {
-//         const [existingDriver] = await connection.query('SELECT id FROM driver_master WHERE driver_name = ?', [driver_id]);
-//         if (existingDriver.length > 0) {
-//           driver_id = existingDriver[0].id;
-//         } else {
-//           const [result] = await connection.query(
-//             'INSERT INTO driver_master (driver_name, driver_mobile, driver_address) VALUES (?, ?, ?)',
-//             [driver_id, driver_mobile || null, driver_address || null]
-//           );
-//           driver_id = result.insertId;
-//         }
-//       } else {
-//         const [driverExists] = await connection.query('SELECT id FROM driver_master WHERE id = ?', [driver_id]);
-//         if (!driverExists.length) {
-//           await connection.rollback();
-//           return res.status(400).json({
-//             status: 'error',
-//             message: 'Invalid driver_id: Driver does not exist',
-//           });
-//         }
-//       }
-
-//       // Insert transport details for each dispatch
-//       for (const { dispatch_id } of dispatchInsertedIds) {
-//         const [result] = await connection.query(
-//           'INSERT INTO transport_master (dispatch_id, provider_id, destination, vehicle_id, driver_id, booking_expense, travel_expense, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-//           [dispatch_id, provider_id, destination, vehicle_id, driver_id, booking_expense || null, travel_expense]
-//         );
-//         transportInsertedIds.push(result.insertId);
-//       }
-//     }
-
-//     await connection.commit();
-//     res.status(201).json({
-//       status: 'success',
-//       message: 'Materials dispatched and transport details saved successfully',
-//       data: {
-//         dispatchInsertedIds,
-//         transportInsertedIds
-//       },
-//     });
-//   } catch (error) {
-//     await connection.rollback();
-//     console.error('Add dispatch error:', error);
-//     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-//       return res.status(400).json({
-//         status: 'error',
-//         message: 'Invalid reference: material_assign_id, provider_id, vehicle_id, or driver_id does not exist',
-//       });
-//     }
-//     res.status(500).json({
-//       status: 'error',
-//       message: 'Internal server error',
-//       error: error.message,
-//       sqlMessage: error.sqlMessage || 'No SQL message available',
-//     });
-//   } finally {
-//     connection.release();
-//   }
-// };
-
-
-
-
-// exports.fetchMaterialAssignmentsWithDispatch = async (req, res) => {
-//   try {
-//     const { pd_id, site_id } = req.query;
-//     let query = `
-//       SELECT 
-//         ma.id,
-//         ma.created_at,
-//         ma.quantity,
-//         ma.comp_ratio_a,
-//         ma.comp_ratio_b,
-//         ma.comp_ratio_c,
-//         ma.desc_id,
-//         wd.desc_name,
-//         pd.project_name,
-//         sd.site_name,
-//         sd.po_number,
-//         mm.item_name,
-//         um.uom_name,
-//         CASE 
-//           WHEN md.material_assign_id IS NULL THEN 'not-dispatched'
-//           ELSE 'dispatched'
-//         END AS dispatch_status
-//       FROM material_assign ma
-//       LEFT JOIN project_details pd ON ma.pd_id = pd.pd_id
-//       LEFT JOIN site_details sd ON ma.site_id = sd.site_id
-//       LEFT JOIN material_master mm ON ma.item_id = mm.item_id
-//       LEFT JOIN uom_master um ON ma.uom_id = um.uom_id
-//       LEFT JOIN work_descriptions wd ON ma.desc_id = wd.desc_id
-//       LEFT JOIN material_dispatch md ON ma.id = md.material_assign_id
-//       WHERE md.material_assign_id IS NULL
-//     `;
-//     const queryParams = [];
-
-//     if (pd_id && site_id) {
-//       query += ' AND ma.pd_id = ? AND ma.site_id = ?';
-//       queryParams.push(pd_id, site_id);
-//     } else if (pd_id) {
-//       query += ' AND ma.pd_id = ?';
-//       queryParams.push(pd_id);
-//     } else if (site_id) {
-//       query += ' AND ma.site_id = ?';
-//       queryParams.push(site_id);
-//     }
-
-//     const [rows] = await db.query(query, queryParams);
-
-//     res.status(200).json({
-//       status: 'success',
-//       message: 'Non-dispatched material assignments fetched successfully',
-//       data: rows,
-//     });
-//   } catch (error) {
-//     console.error('Fetch error:', error);
-//     res.status(500).json({
-//       status: 'error',
-//       message: 'Internal server error',
-//       error: error.message,
-//       sqlMessage: error.sqlMessage || 'No SQL message available',
-//     });
-//   }
-// };
 
 
 
@@ -1768,40 +1455,53 @@ exports.addMaterialDispatch = async (req, res) => {
 };
 
 
+
 exports.fetchMaterialAssignmentsWithDispatch = async (req, res) => {
+  const connection = await db.getConnection();
   try {
     const { pd_id, site_id } = req.query;
+
+    // Base query
     let query = `
       SELECT 
         ma.id,
-        ma.created_at,
+        ma.pd_id,
+        ma.site_id,
+        ma.item_id,
+        ma.uom_id,
         ma.quantity,
         ma.comp_ratio_a,
         ma.comp_ratio_b,
         ma.comp_ratio_c,
         ma.desc_id,
-        wd.desc_name,
-        pd.project_name,
-        sd.site_name,
-        sd.po_number,
+        ma.created_at,
         mm.item_name,
         um.uom_name,
-        ma.quantity - COALESCE(SUM(md.dispatch_qty), 0) AS remaining_quantity,
+        wd.desc_name,
+        pd.project_name,
+        pd.company_id,
+        cd.vendor_code,
+        sd.site_name,
+        sd.po_number,
+        COALESCE(SUM(md.dispatch_qty), 0) AS total_dispatched,
+        (ma.quantity - COALESCE(SUM(md.dispatch_qty), 0)) AS remaining_quantity,
         CASE 
           WHEN ma.quantity - COALESCE(SUM(md.dispatch_qty), 0) > 0 THEN 'not-dispatched'
           ELSE 'dispatched'
         END AS dispatch_status
       FROM material_assign ma
-      LEFT JOIN project_details pd ON ma.pd_id = pd.pd_id
-      LEFT JOIN site_details sd ON ma.site_id = sd.site_id
       LEFT JOIN material_master mm ON ma.item_id = mm.item_id
       LEFT JOIN uom_master um ON ma.uom_id = um.uom_id
       LEFT JOIN work_descriptions wd ON ma.desc_id = wd.desc_id
+      LEFT JOIN project_details pd ON ma.pd_id = pd.pd_id
+      LEFT JOIN company cd ON pd.company_id = cd.company_id
+      LEFT JOIN site_details sd ON ma.site_id = sd.site_id
       LEFT JOIN material_dispatch md ON ma.id = md.material_assign_id
       WHERE 1=1
     `;
     const queryParams = [];
 
+    // Add filters based on provided parameters
     if (pd_id && site_id) {
       query += ' AND ma.pd_id = ? AND ma.site_id = ?';
       queryParams.push(pd_id, site_id);
@@ -1811,146 +1511,61 @@ exports.fetchMaterialAssignmentsWithDispatch = async (req, res) => {
     } else if (site_id) {
       query += ' AND ma.site_id = ?';
       queryParams.push(site_id);
+    } else {
+      return res.status(400).json({
+        status: 'error',
+        message: 'At least one of pd_id or site_id is required',
+      });
     }
 
-    query += ' GROUP BY ma.id HAVING remaining_quantity > 0';
+    // Group by all non-aggregated columns and filter for non-dispatched materials
+    query += `
+      GROUP BY 
+        ma.id,
+        ma.pd_id,
+        ma.site_id,
+        ma.item_id,
+        ma.uom_id,
+        ma.quantity,
+        ma.comp_ratio_a,
+        ma.comp_ratio_b,
+        ma.comp_ratio_c,
+        ma.desc_id,
+        ma.created_at,
+        mm.item_name,
+        um.uom_name,
+        wd.desc_name,
+        pd.project_name,
+        pd.company_id,
+        cd.vendor_code,
+        sd.site_name,
+        sd.po_number
+      HAVING remaining_quantity > 0
+      ORDER BY ma.id
+    `;
 
-    const [rows] = await db.query(query, queryParams);
+    const [rows] = await connection.query(query, queryParams);
+
+    // Ensure rows is an array
+    const result = Array.isArray(rows) ? rows : [];
 
     res.status(200).json({
       status: 'success',
       message: 'Non-dispatched material assignments fetched successfully',
-      data: rows,
+      data: result,
     });
   } catch (error) {
-    console.error('Fetch error:', error);
+    console.error('Error fetching material assignments with dispatch:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Internal server error',
+      message: 'Failed to fetch material assignments',
       error: error.message,
       sqlMessage: error.sqlMessage || 'No SQL message available',
     });
+  } finally {
+    connection.release();
   }
 };
-
-
-// exports.fetchMaterialDispatchDetails = async (req, res) => {
-//   try {
-//     const { pd_id, site_id } = req.query;
-//     let query = `
-//       SELECT 
-//         md.id,
-//         md.material_assign_id,
-//         md.dc_no,
-//         md.dispatch_date,
-//         md.order_no,
-//         c.vendor_code, -- Fetch vendor_code from company table
-//         c.gst_number, -- Fetch gst_number from company table
-//         md.comp_a_qty,
-//         md.comp_b_qty,
-//         md.comp_c_qty,
-//         md.comp_a_remarks,
-//         md.comp_b_remarks,
-//         md.comp_c_remarks,
-//         md.created_at,
-//         ma.quantity AS assigned_quantity,
-//         ma.comp_ratio_a,
-//         ma.comp_ratio_b,
-//         ma.comp_ratio_c,
-//         pd.project_name,
-//         sd.site_name,
-//         sd.po_number,
-//         mm.item_name,
-//         um.uom_name,
-//         JSON_OBJECT(
-//           'id', tm.id,
-//           'destination', tm.destination,
-//           'booking_expense', tm.booking_expense,
-//           'travel_expense', tm.travel_expense,
-//           'dispatch_id', tm.dispatch_id,
-//           'created_at', tm.created_at,
-//           'vehicle', JSON_OBJECT(
-//             'id', vm.id,
-//             'vehicle_name', vm.vehicle_name,
-//             'vehicle_model', vm.vehicle_model,
-//             'vehicle_number', vm.vehicle_number
-//           ),
-//           'driver', JSON_OBJECT(
-//             'id', dm.id,
-//             'driver_name', dm.driver_name,
-//             'driver_mobile', dm.driver_mobile,
-//             'driver_address', dm.driver_address
-//           ),
-//           'provider', JSON_OBJECT(
-//             'id', pm.id,
-//             'provider_name', pm.provider_name,
-//             'address', pm.address,
-//             'mobile', pm.mobile,
-//             'transport_type_id', pm.transport_type_id
-//           )
-//         ) AS transport_details
-//       FROM material_dispatch md
-//       JOIN material_assign ma ON md.material_assign_id = ma.id
-//       JOIN project_details pd ON ma.pd_id = pd.pd_id
-//       JOIN site_details sd ON ma.site_id = sd.site_id
-//       JOIN material_master mm ON ma.item_id = mm.item_id
-//       JOIN uom_master um ON ma.uom_id = um.uom_id
-//       LEFT JOIN transport_master tm ON md.id = tm.dispatch_id
-//       LEFT JOIN vehicle_master vm ON tm.vehicle_id = vm.id
-//       LEFT JOIN driver_master dm ON tm.driver_id = dm.id
-//       LEFT JOIN provider_master pm ON tm.provider_id = pm.id
-//       LEFT JOIN company c ON pd.company_id = c.company_id
-//     `;
-//     const queryParams = [];
-
-//     if (pd_id && site_id) {
-//       query += ' WHERE ma.pd_id = ? AND ma.site_id = ?';
-//       queryParams.push(pd_id, site_id);
-//     } else {
-//       return res.status(400).json({
-//         status: 'error',
-//         message: 'Both pd_id and site_id are required',
-//       });
-//     }
-
-//     // Fetch order_date from po_reckoner table
-//     const [poRows] = await db.query(
-//       `
-//       SELECT created_at AS order_date
-//       FROM po_reckoner
-//       WHERE site_id = ?
-//       LIMIT 1
-//       `,
-//       [site_id]
-//     );
-
-//     const order_date = poRows.length > 0 ? poRows[0].order_date : null;
-
-//     const [rows] = await db.query(query, queryParams);
-
-//     // Add order_date to each row
-//     const formattedData = rows.map(row => ({
-//       ...row,
-//       order_date: order_date ? order_date.toISOString() : 'N/A',
-//       vendor_code: row.vendor_code || 'N/A',
-//       gst_number: row.gst_number || 'N/A'
-//     }));
-
-//     res.status(200).json({
-//       status: 'success',
-//       message: 'Material dispatch details fetched successfully',
-//       data: formattedData,
-//     });
-//   } catch (error) {
-//     console.error('Fetch dispatch details error:', error);
-//     res.status(500).json({
-//       status: 'error',
-//       message: 'Internal server error',
-//       error: error.message,
-//       sqlMessage: error.sqlMessage || 'No SQL message available',
-//     });
-//   }
-// };
 
 
 exports.fetchMaterialDispatchDetails = async (req, res) => {
@@ -2193,3 +1808,105 @@ exports.getDrivers = async function(req, res) {
     res.status(500).json({ status: "error", message: "Failed to fetch drivers", error: error.message });
   }
 };
+
+
+exports.addMaterial = async (req, res) => {
+  try {
+    const { item_name } = req.body;
+
+    // Validation
+    if (!item_name || typeof item_name !== 'string' || item_name.trim() === '') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'item_name is required and must be a non-empty string',
+      });
+    }
+
+    // Generate next item_id
+    const [existingRows] = await db.query('SELECT item_id FROM material_master ORDER BY CAST(SUBSTRING(item_id, 6) AS UNSIGNED) DESC LIMIT 1');
+    
+    let nextIdNum = 1; // Default if no records
+    if (existingRows.length > 0) {
+      const lastItemId = existingRows[0].item_id;
+      const match = lastItemId.match(/^item_(\d+)$/);
+      if (match) {
+        nextIdNum = parseInt(match[1], 10) + 1;
+      } else {
+        // Fallback if pattern doesn't match (unlikely)
+        nextIdNum = 1;
+      }
+    }
+    
+    const newItemId = `item_${nextIdNum.toString().padStart(5, '0')}`; // Padded to 3 digits for consistency (e.g., item_001, but based on your data, no padding needed; adjust if required)
+
+    // Insert new material
+    const [result] = await db.query(
+      'INSERT INTO material_master (item_id, item_name) VALUES (?, ?)',
+      [newItemId, item_name.trim()]
+    );
+
+    // Fetch the newly created record
+    const [newMaterial] = await db.query('SELECT * FROM material_master WHERE item_id = ?', [newItemId]);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Material added successfully',
+      data: newMaterial[0],
+    });
+  } catch (error) {
+    console.error('Error in addMaterial:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Material with this item_id already exists',        
+      });
+    }
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+
+exports.getMaterials = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM material_master');
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch materials' });
+  }
+};
+
+
+
+
+
+exports.getAssignedMaterials = async (req, res) => {
+  try {
+    const { site_id, desc_id } = req.query;
+    if (!site_id || !desc_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'site_id and desc_id are required',
+      });
+    }
+    const [rows] = await db.query(
+      `SELECT item_id, uom_id, quantity, comp_ratio_a, comp_ratio_b, comp_ratio_c, rate
+       FROM material_assign
+       WHERE site_id = ? AND desc_id = ?`,
+      [site_id, desc_id]
+    );
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('Error fetching assigned materials:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch assigned materials',
+      error: error.message,
+    });
+  }
+};
+

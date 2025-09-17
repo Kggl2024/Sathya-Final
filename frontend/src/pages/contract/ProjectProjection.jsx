@@ -3,7 +3,7 @@ import axios from "axios";
 import Select from "react-select";
 import Swal from "sweetalert2";
 import { Plus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const ProjectProjection = () => {
   const [companies, setCompanies] = useState([]);
@@ -43,12 +43,14 @@ const ProjectProjection = () => {
       setLoading(true);
       const response = await axios.get("http://localhost:5000/admin/companies");
       if (response.data.success) {
-        setCompanies(
-          response.data.data.map((company) => ({
-            value: company.company_id,
-            label: company.company_name,
-          }))
-        );
+        const companyOptions = response.data.data.map((company) => ({
+          value: company.company_id,
+          label: company.company_name,
+        }));
+        setCompanies(companyOptions);
+        if (response.data.data.length === 1) {
+          setSelectedCompany(companyOptions[0]);
+        }
       } else {
         setError("Failed to fetch companies.");
       }
@@ -66,12 +68,14 @@ const ProjectProjection = () => {
       setLoading(true);
       const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
       if (response.data.success) {
-        setProjects(
-          response.data.data.map((project) => ({
-            value: project.pd_id,
-            label: project.project_name,
-          }))
-        );
+        const projectOptions = response.data.data.map((project) => ({
+          value: project.pd_id,
+          label: project.project_name,
+        }));
+        setProjects(projectOptions);
+        if (response.data.data.length === 1) {
+          setSelectedProject(projectOptions[0]);
+        }
       } else {
         setError("Failed to fetch projects.");
       }
@@ -89,12 +93,14 @@ const ProjectProjection = () => {
       setLoading(true);
       const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
       if (response.data.success) {
-        setSites(
-          response.data.data.map((site) => ({
-            value: site.site_id,
-            label: `${site.site_name} (PO: ${site.po_number})`,
-          }))
-        );
+        const siteOptions = response.data.data.map((site) => ({
+          value: site.site_id,
+          label: `${site.site_name} (PO: ${site.po_number})`,
+        }));
+        setSites(siteOptions);
+        if (response.data.data.length === 1) {
+          setSelectedSite(siteOptions[0]);
+        }
       } else {
         setError("Failed to fetch sites.");
       }
@@ -114,12 +120,14 @@ const ProjectProjection = () => {
         `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
       );
       if (response.data.success) {
-        setWorkDescriptions(
-          response.data.data.map((desc) => ({
-            value: desc.desc_id,
-            label: desc.desc_name,
-          }))
-        );
+        const descOptions = response.data.data.map((desc) => ({
+          value: desc.desc_id,
+          label: desc.desc_name,
+        }));
+        setWorkDescriptions(descOptions);
+        if (response.data.data.length === 1) {
+          setSelectedWorkDescription(descOptions[0]);
+        }
       } else {
         setError("Failed to fetch work descriptions.");
       }
@@ -203,6 +211,7 @@ const ProjectProjection = () => {
           initialChecked[overhead.id] = overhead.is_default === 1;
           newEntries[overhead.id] = {
             splitted_budget: null,
+            percentage: null,
             actual_value: null,
             difference_value: null,
             remarks: "",
@@ -211,34 +220,6 @@ const ProjectProjection = () => {
         });
 
         setCheckedExpenses(initialChecked);
-
-        if (existingBudget && existingBudget.total_budget_value) {
-          const checkedIds = Object.keys(initialChecked)
-            .filter((id) => initialChecked[id])
-            .map((id) => parseInt(id));
-          const checkedCount = checkedIds.length;
-          if (checkedCount > 0) {
-            const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
-            const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
-            let extraAssigned = 0;
-
-            checkedIds.forEach((id, idx) => {
-              const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
-              newEntries[id].splitted_budget = assignedValue.toFixed(2);
-              newEntries[id].edited = false;
-              extraAssigned += assignedValue;
-            });
-
-            const lastCheckedId = checkedIds[checkedIds.length - 1];
-            if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
-              newEntries[lastCheckedId].splitted_budget = (
-                parseFloat(newEntries[lastCheckedId].splitted_budget) +
-                (existingBudget.total_budget_value - extraAssigned)
-              ).toFixed(2);
-            }
-          }
-        }
-
         setActualBudgetEntries(newEntries);
       } else {
         setError("Failed to fetch overheads.");
@@ -257,8 +238,13 @@ const ProjectProjection = () => {
         const entries = response.data.data || {};
         const processedEntries = {};
         Object.keys(entries).forEach((overheadId) => {
+          const val = parseFloat(entries[overheadId].splitted_budget) || 0;
+          const perc = existingBudget?.total_budget_value > 0 
+            ? (val / existingBudget.total_budget_value * 100).toFixed(2) 
+            : "0.00";
           processedEntries[overheadId] = {
             ...entries[overheadId],
+            percentage: perc,
             edited: true,
           };
         });
@@ -364,6 +350,7 @@ const ProjectProjection = () => {
             ...prev,
             [newOverhead.id]: {
               splitted_budget: null,
+              percentage: null,
               actual_value: null,
               difference_value: null,
               remarks: "",
@@ -392,6 +379,63 @@ const ProjectProjection = () => {
         });
       }
     }
+  };
+
+  // Auto distribute budget evenly among checked expenses
+  const autoDistribute = () => {
+    if (!existingBudget || !existingBudget.total_budget_value) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No valid budget exists to distribute.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    const checkedIds = Object.keys(checkedExpenses)
+      .filter((id) => checkedExpenses[id])
+      .map((id) => parseInt(id));
+
+    const checkedCount = checkedIds.length;
+    if (checkedCount === 0) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "At least one expense must be checked.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    const total = existingBudget.total_budget_value;
+    const baseValue = (total / checkedCount).toFixed(2);
+    let totalAssigned = 0;
+
+    setActualBudgetEntries((prev) => {
+      const newEntries = { ...prev };
+      checkedIds.forEach((id, idx) => {
+        let assigned = parseFloat(baseValue);
+        if (idx === checkedCount - 1) {
+          assigned = total - totalAssigned;
+          assigned = assigned.toFixed(2);
+        } else {
+          totalAssigned += assigned;
+        }
+        const perc = (parseFloat(assigned) / total * 100).toFixed(2);
+        newEntries[id] = {
+          ...newEntries[id],
+          splitted_budget: assigned,
+          percentage: perc,
+          edited: true,
+        };
+      });
+      return newEntries;
+    });
   };
 
   // Allocate budget
@@ -572,218 +616,136 @@ const ProjectProjection = () => {
         });
         return prev;
       }
-
-      const newEntries = { ...actualBudgetEntries };
-      overheads.forEach((overhead) => {
-        if (!newEntries[overhead.id]) {
-          newEntries[overhead.id] = {
+      if (!newChecked[id]) {
+        setActualBudgetEntries((prevEntries) => ({
+          ...prevEntries,
+          [id]: {
+            ...prevEntries[id],
             splitted_budget: null,
-            actual_value: null,
-            difference_value: null,
-            remarks: "",
+            percentage: null,
             edited: false,
-          };
-        }
-      });
-
-      if (existingBudget && existingBudget.total_budget_value) {
-        const checkedIds = Object.keys(newChecked)
-          .filter((key) => newChecked[key])
-          .map((key) => parseInt(key));
-        const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
-        const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
-        let extraAssigned = 0;
-
-        checkedIds.forEach((expenseId, idx) => {
-          const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
-          newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
-          newEntries[expenseId].edited = false;
-          extraAssigned += assignedValue;
-        });
-
-        const lastCheckedId = checkedIds[checkedIds.length - 1];
-        if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
-          newEntries[lastCheckedId].splitted_budget = (
-            parseFloat(newEntries[lastCheckedId].splitted_budget) +
-            (existingBudget.total_budget_value - extraAssigned)
-          ).toFixed(2);
-        }
-
-        Object.keys(newChecked).forEach((expenseId) => {
-          if (!newChecked[expenseId]) {
-            newEntries[expenseId].splitted_budget = null;
-            newEntries[expenseId].edited = false;
-          }
-        });
+          },
+        }));
       }
-
-      setActualBudgetEntries(newEntries);
       return newChecked;
     });
   };
 
-  // Handle budgeted value change
-  const handleSplittedBudgetChange = (id, value) => {
-    const parsedValue = value ? Math.floor(parseFloat(value)) : 0;
-    if (parsedValue < 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Budget value cannot be negative.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    if (!existingBudget || !existingBudget.total_budget_value) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No valid budget exists to allocate expenses.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    const checkedIds = Object.keys(checkedExpenses)
-      .filter((key) => checkedExpenses[key])
-      .map((key) => parseInt(key));
-
-    const currentIndex = checkedIds.indexOf(parseInt(id));
-    if (currentIndex === -1) return;
-
-    setActualBudgetEntries((prev) => {
-      const newEntries = { ...prev };
-
-      overheads.forEach((overhead) => {
-        if (!newEntries[overhead.id]) {
-          newEntries[overhead.id] = {
-            splitted_budget: null,
-            actual_value: null,
-            difference_value: null,
-            remarks: "",
-            edited: false,
-          };
-        }
-      });
-
-      newEntries[id] = {
-        ...newEntries[id],
-        splitted_budget: parsedValue.toFixed(2),
-        edited: true,
-      };
-
-      const uneditedSubsequentIds = checkedIds
-        .slice(currentIndex + 1)
-        .filter((expenseId) => !newEntries[expenseId]?.edited);
-
-      let currentSum = parsedValue;
-      checkedIds.forEach((expenseId, idx) => {
-        if (idx !== currentIndex && !uneditedSubsequentIds.includes(expenseId)) {
-          currentSum += parseFloat(newEntries[expenseId]?.splitted_budget) || 0;
-        }
-      });
-
-      const remainingBudget = Math.round((existingBudget.total_budget_value - currentSum) * 100) / 100;
-
-      if (currentIndex < checkedIds.length - 1 && uneditedSubsequentIds.length > 0) {
-        const splitCount = uneditedSubsequentIds.length;
-        const splitValue = Math.floor(remainingBudget / splitCount);
-        const remainder = Math.round((remainingBudget - splitValue * splitCount) * 100) / 100;
-        let extraAssigned = 0;
-
-        uneditedSubsequentIds.forEach((expenseId, idx) => {
-          const assignedValue = idx < Math.floor(remainder) ? splitValue + 1 : splitValue;
-          if (assignedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === expenseId)?.expense_name || "expense"
-              } would be negative (${assignedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
-          extraAssigned += assignedValue;
-        });
-
-        const lastSubsequentId = uneditedSubsequentIds[uneditedSubsequentIds.length - 1];
-        if (lastSubsequentId && extraAssigned !== remainingBudget) {
-          const adjustedValue =
-            parseFloat(newEntries[lastSubsequentId].splitted_budget) + (remainingBudget - extraAssigned);
-          if (adjustedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === lastSubsequentId)?.expense_name || "expense"
-              } would be negative (${adjustedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[lastSubsequentId].splitted_budget = adjustedValue.toFixed(2);
-        }
-      } else {
-        const uneditedIds = checkedIds.filter(
-          (expenseId) => !newEntries[expenseId]?.edited && expenseId !== parseInt(id)
-        );
-        const targetId = uneditedIds.length > 0 ? uneditedIds[0] : checkedIds[0];
-        if (targetId && targetId !== parseInt(id)) {
-          const newAdjustedValue = (parseFloat(newEntries[targetId].splitted_budget) || 0) + remainingBudget;
-          if (newAdjustedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === targetId)?.expense_name || "first expense"
-              } would be negative (${newAdjustedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[targetId].splitted_budget = newAdjustedValue.toFixed(2);
-        }
-      }
-
-      return newEntries;
+  // Handle percentage change for individual expense
+const handlePercentageChange = (id, value) => {
+  let perc = value === '' ? '' : parseFloat(value);
+  if (value === '' || isNaN(perc) || perc < 0) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Percentage cannot be negative or invalid.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
     });
-  };
+    return;
+  }
+  if (perc > 100) {
+    perc = 100;
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Percentage cannot exceed 100%.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    if (
-      selectedCompany &&
-      selectedProject &&
-      selectedSite &&
-      selectedWorkDescription &&
-      budgetPercentage &&
-      budgetValue
-    ) {
-      await savePoBudget();
-    } else {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Please select all fields and enter budget details before submitting.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
+  const total = existingBudget.total_budget_value;
+  const newValue = (perc / 100 * total).toFixed(2);
+
+  setActualBudgetEntries((prev) => ({
+    ...prev,
+    [id]: {
+      ...prev[id],
+      percentage: value, // Store as entered (integer or with decimal if provided)
+      splitted_budget: newValue,
+      edited: true,
+    },
+  }));
+};
+
+  // Handle budgeted value change for individual expense
+ const handleSplittedBudgetChange = (id, value) => {
+  let val = parseFloat(value);
+  if (isNaN(val) || val < 0) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Budget value cannot be negative.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+    return;
+  }
+  const total = existingBudget.total_budget_value;
+  if (val > total) {
+    val = total;
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: `Budget value cannot exceed Rs.${total.toFixed(2)}.`,
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
+
+  const perc = (val / total * 100).toFixed(2);
+
+  setActualBudgetEntries((prev) => ({
+    ...prev,
+    [id]: {
+      ...prev[id],
+      splitted_budget: val.toFixed(2),
+      percentage: perc.includes('.') ? perc : parseInt(perc).toString(), // Store as integer unless decimal exists
+      edited: true,
+    },
+  }));
+};
+
+  // Compute sums for validation
+const computeSums = () => {
+  let sumPerc = 0;
+  let sumBudget = 0;
+  Object.keys(checkedExpenses).forEach((id) => {
+    if (checkedExpenses[id]) {
+      sumPerc += parseFloat(actualBudgetEntries[id]?.percentage || 0);
+      sumBudget += parseFloat(actualBudgetEntries[id]?.splitted_budget || 0);
     }
-  };
+  });
+  return { sumPerc, sumBudget };
+};
+
+// Handle form submission
+const handleSubmit = async () => {
+  if (
+    selectedCompany &&
+    selectedProject &&
+    selectedSite &&
+    selectedWorkDescription &&
+    budgetPercentage &&
+    budgetValue
+  ) {
+    await savePoBudget(); // Corrected: Added space between `await` and `savePoBudget`
+  } else {
+    await Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Please select all fields and enter budget details before submitting.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
+};
 
   // Load companies on mount
   useEffect(() => {
@@ -951,6 +913,15 @@ const ProjectProjection = () => {
         actualFill: actualExceedsBudget ? "#C84D4D" : "#40A4DF",
       };
     });
+
+const { sumPerc, sumBudget } = computeSums();
+const total = existingBudget?.total_budget_value || 0;
+const percDiff = sumPerc - 100;
+const budgetDiff = sumBudget - total;
+const percError = percDiff > 0.01 ? `Excess by ${percDiff.toFixed(2)}%` : percDiff < -0.01 ? `Short by ${Math.abs(percDiff).toFixed(2)}%` : '';
+const budgetError = budgetDiff > 0.01 ? `Excess by Rs.${budgetDiff.toFixed(2)}` : budgetDiff < -0.01 ? `Short by Rs.${Math.abs(budgetDiff).toFixed(2)}` : '';
+const isValid = Math.abs(budgetDiff) <= 0.01;
+const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted value allocated successfully!' : '';
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -1177,7 +1148,16 @@ const ProjectProjection = () => {
                           </button>
                         )}
                       </th>
-                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Budgeted Value (Rs.)</th>
+<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+  Budget Percentage (%)
+  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+  {percError && !successMessage && <span className="block text-red-500 text-xs">{percError}</span>}
+</th>
+<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+  Budgeted Value (Rs.)
+  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+  {budgetError && !successMessage && <span className="block text-red-500 text-xs">{budgetError}</span>}
+</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Actual Value (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Balance (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Remarks</th>
@@ -1208,20 +1188,34 @@ const ProjectProjection = () => {
                             <td className="py-2 px-4 border-b text-sm text-gray-800">{overhead.expense_name}</td>
                             <td className="py-2 px-4 border-b text-sm text-gray-800">
                               {isAllocated ? (
+                                actualBudgetEntries[overhead.id]?.percentage || "N/A"
+                              ) : checkedExpenses[overhead.id] ? (
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  max="100"
+                                  value={actualBudgetEntries[overhead.id]?.percentage || ""}
+                                  onChange={(e) => handlePercentageChange(overhead.id, e.target.value)}
+                                  className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  placeholder="Enter percentage"
+                                />
+                              ) : (
+                                "N/A"
+                              )}
+                            </td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {isAllocated ? (
                                 actualBudgetEntries[overhead.id]?.splitted_budget || "N/A"
                               ) : checkedExpenses[overhead.id] ? (
                                 <input
                                   type="number"
-                                  step="1"
+                                  step="any"
                                   min="0"
-                                  value={
-                                    actualBudgetEntries[overhead.id]?.splitted_budget
-                                      ? Math.floor(parseFloat(actualBudgetEntries[overhead.id].splitted_budget))
-                                      : ""
-                                  }
+                                  value={actualBudgetEntries[overhead.id]?.splitted_budget || ""}
                                   onChange={(e) => handleSplittedBudgetChange(overhead.id, e.target.value)}
                                   className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                  placeholder="Enter integer value"
+                                  placeholder="Enter value"
                                 />
                               ) : (
                                 "N/A"
@@ -1274,12 +1268,21 @@ const ProjectProjection = () => {
                 </div>
               )}
               {!isAllocated && (
-                <button
-                  onClick={allocateBudget}
-                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                >
-                  Allocate Budget
-                </button>
+                <>
+                  <button
+                    onClick={autoDistribute}
+                    className="mt-4 mr-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                  >
+                    Auto Distribute
+                  </button>
+                  <button
+                    onClick={allocateBudget}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+                    disabled={!isValid}
+                  >
+                    Allocate Budget
+                  </button>
+                </>
               )}
             </div>
           )}
