@@ -8,11 +8,13 @@ import { useParams } from "react-router-dom";
 
 const WorkForcePlanning = () => {
   const { encodedUserId } = useParams();
+  const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
   const [sites, setSites] = useState([]);
   const [workDescriptions, setWorkDescriptions] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [labourEmployees, setLabourEmployees] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedSite, setSelectedSite] = useState(null);
   const [selectedWorkDesc, setSelectedWorkDesc] = useState(null);
@@ -29,35 +31,40 @@ const WorkForcePlanning = () => {
   const [labourFromDate, setLabourFromDate] = useState(new Date().toISOString().split("T")[0]);
   const [labourToDate, setLabourToDate] = useState(new Date().toISOString().split("T")[0]);
 
+  // Fetch companies and projects on component mount
   useEffect(() => {
-    const fetchProjectsAndSites = async () => {
+    const fetchCompaniesAndProjects = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
-        setProjects(response.data || []);
+        const [companyResponse, projectResponse] = await Promise.all([
+          axios.get("http://localhost:5000/project/companies"),
+          axios.get("http://localhost:5000/project/projects-with-sites"),
+        ]);
+        setCompanies(companyResponse.data || []);
+        setProjects(projectResponse.data || []);
       } catch (err) {
-        setError("Failed to fetch projects and sites");
-        toast.error("Failed to fetch projects and sites");
+        setError("Failed to fetch companies or projects");
+        toast.error("Failed to fetch companies or projects");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProjectsAndSites();
+    fetchCompaniesAndProjects();
   }, []);
 
+  // Fetch employees and labour employees
   useEffect(() => {
-    let isMounted = true; // Prevent race conditions
+    let isMounted = true;
 
     const fetchEmployees = async () => {
       setLoading(true);
       try {
-        // Fetch regular employees for site incharge
-        const empResponse = await axios.get("http://103.118.158.127/api/site-incharge/employees");
+        const [empResponse, labourResponse] = await Promise.all([
+          axios.get("http://localhost:5000/site-incharge/employees"),
+          axios.get("http://localhost:5000/admin/labour"),
+        ]);
         if (isMounted) {
           setEmployees(empResponse.data.data || []);
-        }
-
-        // Fetch labour employees
-        const labourResponse = await axios.get("http://103.118.158.127/api/admin/labour");
-        console.log("Labours fetched:", labourResponse.data); // Debug log
-        if (isMounted) {
           setLabourEmployees(labourResponse.data.data || []);
           setError(null);
         }
@@ -74,30 +81,46 @@ const WorkForcePlanning = () => {
     fetchEmployees();
 
     return () => {
-      isMounted = false; // Cleanup
+      isMounted = false;
     };
   }, []);
 
+  // Update projects when company is selected
+  useEffect(() => {
+    if (selectedCompany) {
+      setSelectedProject(null);
+      setSites([]);
+      setSelectedSite(null);
+      setWorkDescriptions([]);
+      setSelectedWorkDesc(null);
+      setSelectedIncharges([]);
+      setSelectedLabour([]);
+    }
+  }, [selectedCompany]);
+
+  // Update sites when project is selected
   useEffect(() => {
     if (selectedProject) {
       const selectedProjectData = projects.find(project => project.project_id === selectedProject.value);
       setSites(selectedProjectData ? selectedProjectData.sites : []);
       setSelectedSite(null);
+      setWorkDescriptions([]);
       setSelectedWorkDesc(null);
       setSelectedIncharges([]);
       setSelectedLabour([]);
     }
   }, [selectedProject, projects]);
 
+  // Fetch work descriptions when project and site are selected
   useEffect(() => {
     if (selectedProject && selectedSite) {
-      let isMounted = true; // Prevent race conditions
+      let isMounted = true;
 
       const fetchWorkDescriptions = async () => {
         setLoading(true);
         try {
           const response = await axios.get(
-            `http://103.118.158.127/api/site-incharge/work-descriptions?site_id=${selectedSite.value}`
+            `http://localhost:5000/site-incharge/work-descriptions?site_id=${selectedSite.value}`
           );
           if (isMounted) {
             setWorkDescriptions(response.data.data || []);
@@ -116,7 +139,7 @@ const WorkForcePlanning = () => {
       fetchWorkDescriptions();
 
       return () => {
-        isMounted = false; // Cleanup
+        isMounted = false;
       };
     }
   }, [selectedProject, selectedSite]);
@@ -139,8 +162,8 @@ const WorkForcePlanning = () => {
       return;
     }
 
-    if (!selectedProject || !selectedSite || !selectedWorkDesc) {
-      toast.error("Please fill all required fields: project, site, and work description");
+    if (!selectedCompany || !selectedProject || !selectedSite || !selectedWorkDesc) {
+      toast.error("Please fill all required fields: company, project, site, and work description");
       return;
     }
 
@@ -171,7 +194,7 @@ const WorkForcePlanning = () => {
         }));
 
         const inchargeResponse = await axios.post(
-          "http://103.118.158.127/api/material/assign-incharge",
+          "http://localhost:5000/material/assign-incharge",
           inchargePayload
         );
         toast.success(inchargeResponse.data.message || "Site incharges assigned successfully");
@@ -188,9 +211,9 @@ const WorkForcePlanning = () => {
           to_date: labourToDate,
           created_by: parseInt(user_id),
         };
-        console.log("Labour payload:", labourPayload); // Debug log
+        console.log("Labour payload:", labourPayload);
         const labourResponse = await axios.post(
-          "http://103.118.158.127/api/site-incharge/save-labour-assignment", // Updated to match LabourAssign.jsx
+          "http://localhost:5000/site-incharge/save-labour-assignment",
           labourPayload
         );
         toast.success(labourResponse.data.message || "Labours assigned successfully");
@@ -207,10 +230,17 @@ const WorkForcePlanning = () => {
     }
   };
 
-  const projectOptions = projects.map(project => ({
-    value: project.project_id,
-    label: project.project_name,
+  const companyOptions = companies.map(company => ({
+    value: company.company_id,
+    label: company.company_name,
   }));
+
+  const projectOptions = projects
+    .filter(project => selectedCompany ? project.company_id === selectedCompany.value : true)
+    .map(project => ({
+      value: project.project_id,
+      label: project.project_name,
+    }));
 
   const siteOptions = sites.map(site => ({
     value: site.site_id,
@@ -242,8 +272,23 @@ const WorkForcePlanning = () => {
         <p className="text-gray-600 text-center mb-6">Manage site assignments for projects</p>
 
         <div className="mb-6 space-y-5">
-          {/* Project and Site Selection */}
+          {/* Company, Project, and Site Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-blue-800 mb-2 flex items-center">
+                <Building size={16} className="mr-1" />
+                Company
+              </label>
+              <Select
+                options={companyOptions}
+                value={selectedCompany}
+                onChange={setSelectedCompany}
+                placeholder="Select Company..."
+                isSearchable
+                className="w-full"
+                classNamePrefix="react-select"
+              />
+            </div>
             <div className="bg-blue-50 p-4 rounded-lg">
               <label className="block text-sm font-medium text-blue-800 mb-2 flex items-center">
                 <HardHat size={16} className="mr-1" />
@@ -255,6 +300,7 @@ const WorkForcePlanning = () => {
                 onChange={setSelectedProject}
                 placeholder="Select Cost Center..."
                 isSearchable
+                isDisabled={!selectedCompany}
                 className="w-full"
                 classNamePrefix="react-select"
               />
@@ -278,7 +324,7 @@ const WorkForcePlanning = () => {
           </div>
 
           {/* Work Description */}
-          {selectedProject && selectedSite && (
+          {selectedCompany && selectedProject && selectedSite && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <label className="block text-sm font-medium text-blue-800 mb-2">Work Description</label>
               <Select
@@ -363,7 +409,7 @@ const WorkForcePlanning = () => {
                   placeholder="Search employees..."
                   isSearchable
                   isMulti
-                  isDisabled={loading || !selectedProject || !selectedSite || !selectedWorkDesc}
+                  isDisabled={loading || !selectedCompany || !selectedProject || !selectedSite || !selectedWorkDesc}
                   className="w-full"
                   classNamePrefix="react-select"
                 />
@@ -416,7 +462,7 @@ const WorkForcePlanning = () => {
                     placeholder="Search labour employees..."
                     isSearchable
                     isMulti
-                    isDisabled={loading || !selectedProject || !selectedSite || !selectedWorkDesc}
+                    isDisabled={loading || !selectedCompany || !selectedProject || !selectedSite || !selectedWorkDesc}
                     className="w-full"
                     classNamePrefix="react-select"
                   />
@@ -442,7 +488,7 @@ const WorkForcePlanning = () => {
         <button
           onClick={handleSaveAssignments}
           className="w-full p-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center mt-5 shadow-md transition-all duration-200 transform hover:scale-[1.02]"
-          disabled={submitting || !selectedProject || !selectedSite || !selectedWorkDesc}
+          disabled={submitting || !selectedCompany || !selectedProject || !selectedSite || !selectedWorkDesc}
         >
           <Save size={18} className="mr-2" />
           {submitting ? "Processing..." : "Save Assignments"}
@@ -450,7 +496,8 @@ const WorkForcePlanning = () => {
 
         <div className="mt-6 text-center text-xs text-gray-500">
           <p>
-            Assigning personnel to: {selectedProject?.label || "No project selected"} /{" "}
+            Assigning personnel to: {selectedCompany?.label || "No company selected"} /{" "}
+            {selectedProject?.label || "No project selected"} /{" "}
             {selectedSite?.label || "No site selected"}
           </p>
           <p className="mt-1">Work: {selectedWorkDesc?.label || "No work description selected"}</p>

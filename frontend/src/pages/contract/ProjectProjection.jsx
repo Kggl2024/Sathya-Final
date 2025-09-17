@@ -1,9 +1,1314 @@
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+// import Select from "react-select";
+// import Swal from "sweetalert2";
+// import { Plus } from "lucide-react";
+// import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
+
+// const ProjectProjection = () => {
+//   const [companies, setCompanies] = useState([]);
+//   const [projects, setProjects] = useState([]);
+//   const [sites, setSites] = useState([]); 
+//   const [workDescriptions, setWorkDescriptions] = useState([]);
+//   const [selectedCompany, setSelectedCompany] = useState(null);
+//   const [selectedProject, setSelectedProject] = useState(null);
+//   const [selectedSite, setSelectedSite] = useState(null);
+//   const [selectedWorkDescription, setSelectedWorkDescription] = useState(null);
+//   const [budgetData, setBudgetData] = useState(null);
+//   const [budgetPercentage, setBudgetPercentage] = useState("");
+//   const [budgetValue, setBudgetValue] = useState("");
+//   const [existingBudget, setExistingBudget] = useState(null);
+//   const [overheads, setOverheads] = useState([]);
+//   const [checkedExpenses, setCheckedExpenses] = useState({});
+//   const [actualBudgetEntries, setActualBudgetEntries] = useState({});
+//   const [isAllocated, setIsAllocated] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState(null);
+
+//   // Call calculate-labour-budget API on component mount
+//   useEffect(() => {
+//     const callCalculateLabourBudget = async () => {
+//       try {
+//         await axios.get("http://localhost:5000/site-incharge/calculate-labour-budget");
+//       } catch (error) {
+//         console.error("Error calling calculate-labour-budget API:", error.message);
+//       }
+//     };
+//     callCalculateLabourBudget();
+//   }, []);
+
+//   // Fetch companies
+//   const fetchCompanies = async () => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get("http://localhost:5000/admin/companies");
+//       if (response.data.success) {
+//         setCompanies(
+//           response.data.data.map((company) => ({
+//             value: company.company_id,
+//             label: company.company_name,
+//           }))
+//         );
+//       } else {
+//         setError("Failed to fetch companies.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching companies:", error);
+//       setError("Failed to load companies. Please try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Fetch projects by company ID
+//   const fetchProjects = async (companyId) => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
+//       if (response.data.success) {
+//         setProjects(
+//           response.data.data.map((project) => ({
+//             value: project.pd_id,
+//             label: project.project_name,
+//           }))
+//         );
+//       } else {
+//         setError("Failed to fetch projects.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching projects:", error);
+//       setError("Failed to load projects. Please try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Fetch sites by project ID
+//   const fetchSites = async (projectId) => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
+//       if (response.data.success) {
+//         setSites(
+//           response.data.data.map((site) => ({
+//             value: site.site_id,
+//             label: `${site.site_name} (PO: ${site.po_number})`,
+//           }))
+//         );
+//       } else {
+//         setError("Failed to fetch sites.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching sites:", error);
+//       setError("Failed to load sites. Please try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Fetch work descriptions by site ID
+//   const fetchWorkDescriptions = async (siteId) => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(
+//         `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
+//       );
+//       if (response.data.success) {
+//         setWorkDescriptions(
+//           response.data.data.map((desc) => ({
+//             value: desc.desc_id,
+//             label: desc.desc_name,
+//           }))
+//         );
+//       } else {
+//         setError("Failed to fetch work descriptions.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching work descriptions:", error);
+//       setError("Failed to load work descriptions. Please try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Fetch budget details by site ID and work description ID
+//   const fetchBudgetDetails = async (siteId, descId) => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(
+//         `http://localhost:5000/admin/po-total-budget/${siteId}/${descId}`
+//       );
+//       if (response.data.success) {
+//         setBudgetData({
+//           ...response.data.data,
+//           total_po_value: parseFloat(response.data.data.total_po_value) || 0,
+//           total_rate: parseFloat(response.data.data.total_rate) || 0,
+//         });
+//       } else {
+//         setError("Failed to fetch budget details.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching budget details:", error);
+//       setError("Failed to load budget details. Please try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Check if budget exists for site_id and desc_id
+//   const checkBudgetExists = async (siteId, descId) => {
+//     try {
+//       const response = await axios.get("http://localhost:5000/admin/po-budget", {
+//         params: { site_id: siteId, desc_id: descId },
+//       });
+//       if (response.data.success && response.data.data) {
+//         const budget = {
+//           ...response.data.data,
+//           total_po_value: parseFloat(response.data.data.total_po_value) || 0,
+//           total_budget_value: parseFloat(response.data.data.total_budget_value) || 0,
+//         };
+//         setExistingBudget(budget);
+//         if (budget.total_po_value && budget.total_budget_value) {
+//           const percentage = ((budget.total_budget_value / budget.total_po_value) * 100).toFixed(2);
+//           setBudgetPercentage(percentage);
+//           setBudgetValue(budget.total_budget_value.toFixed(2));
+//         } else {
+//           setBudgetPercentage("");
+//           setBudgetValue("");
+//         }
+//       } else {
+//         setExistingBudget(null);
+//         setBudgetPercentage("");
+//         setBudgetValue("");
+//       }
+//     } catch (error) {
+//       console.error("Error checking budget existence:", error);
+//       setError("Failed to check budget existence. Please try again.");
+//       setExistingBudget(null);
+//     }
+//   };
+
+//   // Fetch overheads and initialize actualBudgetEntries
+//   const fetchOverheads = async (po_budget_id) => {
+//     try {
+//       const response = await axios.get("http://localhost:5000/admin/overheads", {
+//         params: po_budget_id ? { po_budget_id } : {},
+//       });
+//       if (response.data.success) {
+//         setOverheads(response.data.data);
+//         const initialChecked = {};
+//         const newEntries = {};
+
+//         response.data.data.forEach((overhead) => {
+//           initialChecked[overhead.id] = overhead.is_default === 1;
+//           newEntries[overhead.id] = {
+//             splitted_budget: null,
+//             actual_value: null,
+//             difference_value: null,
+//             remarks: "",
+//             edited: false,
+//           };
+//         });
+
+//         setCheckedExpenses(initialChecked);
+
+//         if (existingBudget && existingBudget.total_budget_value) {
+//           const checkedIds = Object.keys(initialChecked)
+//             .filter((id) => initialChecked[id])
+//             .map((id) => parseInt(id));
+//           const checkedCount = checkedIds.length;
+//           if (checkedCount > 0) {
+//             const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
+//             const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
+//             let extraAssigned = 0;
+
+//             checkedIds.forEach((id, idx) => {
+//               const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
+//               newEntries[id].splitted_budget = assignedValue.toFixed(2);
+//               newEntries[id].edited = false;
+//               extraAssigned += assignedValue;
+//             });
+
+//             const lastCheckedId = checkedIds[checkedIds.length - 1];
+//             if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
+//               newEntries[lastCheckedId].splitted_budget = (
+//                 parseFloat(newEntries[lastCheckedId].splitted_budget) +
+//                 (existingBudget.total_budget_value - extraAssigned)
+//               ).toFixed(2);
+//             }
+//           }
+//         }
+
+//         setActualBudgetEntries(newEntries);
+//       } else {
+//         setError("Failed to fetch overheads.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching overheads:", error);
+//       setError("Failed to load overheads. Please try again.");
+//     }
+//   };
+
+//   // Fetch actual budget entries
+//   const fetchActualBudgetEntries = async (po_budget_id) => {
+//     try {
+//       const response = await axios.get(`http://localhost:5000/admin/actual-budget/${po_budget_id}`);
+//       if (response.data.success) {
+//         const entries = response.data.data || {};
+//         const processedEntries = {};
+//         Object.keys(entries).forEach((overheadId) => {
+//           processedEntries[overheadId] = {
+//             ...entries[overheadId],
+//             edited: true,
+//           };
+//         });
+//         setActualBudgetEntries(processedEntries);
+//         setIsAllocated(Object.keys(processedEntries).length > 0);
+//         if (Object.keys(processedEntries).length > 0) {
+//           const checked = {};
+//           Object.keys(processedEntries).forEach((id) => {
+//             checked[id] = true;
+//           });
+//           setCheckedExpenses(checked);
+//         }
+//       } else {
+//         setError(response.data.message || "Failed to fetch actual budget entries.");
+//       }
+//     } catch (error) {
+//       console.error("Error fetching actual budget entries:", error);
+//       setError("Failed to load actual budget entries. Please try again.");
+//     }
+//   };
+
+//   // Save budget details to backend
+//   const savePoBudget = async () => {
+//     try {
+//       const response = await axios.post("http://localhost:5000/admin/save-po-budget", {
+//         site_id: selectedSite.value,
+//         desc_id: selectedWorkDescription.value,
+//         total_po_value: budgetData.total_po_value,
+//         total_budget_value: parseFloat(budgetValue) || 0,
+//       });
+//       if (response.data.success) {
+//         await Swal.fire({
+//           icon: "success",
+//           title: "Success",
+//           text: response.data.message,
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//         await checkBudgetExists(selectedSite.value, selectedWorkDescription.value);
+//       } else {
+//         await Swal.fire({
+//           icon: "error",
+//           title: "Error",
+//           text: response.data.message,
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//       }
+//     } catch (error) {
+//       console.error("Error saving PO budget:", error);
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "Failed to save budget. Please try again.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//     }
+//   };
+
+//   // Save new overhead
+//   const saveOverhead = async () => {
+//     const { value: expense_name } = await Swal.fire({
+//       title: "Add New Overhead",
+//       input: "text",
+//       inputLabel: "Expense Name",
+//       inputPlaceholder: "Enter expense name",
+//       showCancelButton: true,
+//       confirmButtonText: "Save",
+//       cancelButtonText: "Cancel",
+//       confirmButtonColor: "#4f46e5",
+//       inputValidator: (value) => {
+//         if (!value) {
+//           return "Expense name is required!";
+//         }
+//       },
+//     });
+
+//     if (expense_name) {
+//       try {
+//         const response = await axios.post("http://localhost:5000/admin/save-overhead", {
+//           expense_name,
+//         });
+//         if (response.data.success) {
+//           await Swal.fire({
+//             icon: "success",
+//             title: "Success",
+//             text: response.data.message,
+//             confirmButtonColor: "#4f46e5",
+//             timer: 3000,
+//             timerProgressBar: true,
+//           });
+//           const newOverhead = { id: response.data.data.id, expense_name, is_default: 0 };
+//           setOverheads((prev) => [...prev, newOverhead]);
+//           setCheckedExpenses((prev) => ({
+//             ...prev,
+//             [newOverhead.id]: false,
+//           }));
+//           setActualBudgetEntries((prev) => ({
+//             ...prev,
+//             [newOverhead.id]: {
+//               splitted_budget: null,
+//               actual_value: null,
+//               difference_value: null,
+//               remarks: "",
+//               edited: false,
+//             },
+//           }));
+//         } else {
+//           await Swal.fire({
+//             icon: "error",
+//             title: "Error",
+//             text: response.data.message,
+//             confirmButtonColor: "#4f46e5",
+//             timer: 3000,
+//             timerProgressBar: true,
+//           });
+//         }
+//       } catch (error) {
+//         console.error("Error saving overhead:", error);
+//         await Swal.fire({
+//           icon: "error",
+//           title: "Error",
+//           text: "Failed to save overhead. Please try again.",
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//       }
+//     }
+//   };
+
+//   // Allocate budget
+//   const allocateBudget = async () => {
+//     if (!existingBudget || !existingBudget.total_budget_value) {
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "No valid budget exists to allocate expenses.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//       return;
+//     }
+
+//     const checkedCount = Object.values(checkedExpenses).filter((checked) => checked).length;
+//     if (checkedCount === 0) {
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "At least one expense must be checked.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//       return;
+//     }
+
+//     const entries = Object.keys(checkedExpenses)
+//       .filter((id) => checkedExpenses[id])
+//       .map((id) => ({
+//         overhead_id: parseInt(id),
+//         splitted_budget: parseFloat(actualBudgetEntries[id]?.splitted_budget) || 0,
+//         actual_value: parseFloat(actualBudgetEntries[id]?.actual_value) || null,
+//         remarks: actualBudgetEntries[id]?.remarks || "",
+//       }));
+
+//     const totalSplitted = entries.reduce((sum, entry) => sum + parseFloat(entry.splitted_budget || 0), 0);
+//     if (Math.abs(totalSplitted - existingBudget.total_budget_value) > 0.01) {
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: `Sum of budgeted values (${totalSplitted.toFixed(2)}) must equal total budget value (Rs.${existingBudget.total_budget_value.toFixed(2)}).`,
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//       return;
+//     }
+
+//     try {
+//       const response = await axios.post("http://localhost:5000/admin/save-actual-budget", {
+//         po_budget_id: existingBudget.id,
+//         actual_budget_entries: entries,
+//       });
+//       if (response.data.success) {
+//         await Swal.fire({
+//           icon: "success",
+//           title: "Success",
+//           text: response.data.message,
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//         await fetchActualBudgetEntries(existingBudget.id);
+//       } else {
+//         await Swal.fire({
+//           icon: "error",
+//           title: "Error",
+//           text: response.data.message,
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//       }
+//     } catch (error) {
+//       console.error("Error allocating budget:", error);
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "Failed to allocate budget. Please try again.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//     }
+//   };
+
+//   // Handle budget percentage input change
+//   const handleBudgetPercentageChange = (e) => {
+//     let percentage = e.target.value;
+
+//     if (percentage && parseFloat(percentage) > 100) {
+//       percentage = "100";
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "Budget percentage cannot exceed 100%.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//     }
+
+//     setBudgetPercentage(percentage);
+
+//     if (percentage && budgetData && budgetData.total_po_value) {
+//       const percentageValue = parseFloat(percentage);
+//       if (!isNaN(percentageValue) && percentageValue >= 0) {
+//         const calculatedValue = (percentageValue / 100) * budgetData.total_po_value;
+//         if (calculatedValue <= budgetData.total_po_value) {
+//           setBudgetValue(calculatedValue.toFixed(2));
+//         } else {
+//           setBudgetValue(budgetData.total_po_value.toFixed(2));
+//         }
+//       } else {
+//         setBudgetValue("");
+//       }
+//     } else {
+//       setBudgetValue("");
+//     }
+//   };
+
+//   // Handle budget value input change
+//   const handleBudgetValueChange = (e) => {
+//     let value = e.target.value;
+
+//     if (
+//       value &&
+//       budgetData &&
+//       budgetData.total_po_value &&
+//       parseFloat(value) > budgetData.total_po_value
+//     ) {
+//       value = budgetData.total_po_value.toString();
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: `Budget value cannot exceed Rs.${budgetData.total_po_value.toFixed(2)}.`,
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//     }
+
+//     setBudgetValue(value);
+
+//     if (value && budgetData && budgetData.total_po_value) {
+//       const valueNumber = parseFloat(value);
+//       if (!isNaN(valueNumber) && valueNumber >= 0 && budgetData.total_po_value > 0) {
+//         const calculatedPercentage = (valueNumber / budgetData.total_po_value) * 100;
+//         if (calculatedPercentage <= 100) {
+//           setBudgetPercentage(calculatedPercentage.toFixed(2));
+//         } else {
+//           setBudgetPercentage("100");
+//         }
+//       } else {
+//         setBudgetPercentage("");
+//       }
+//     } else {
+//       setBudgetPercentage("");
+//     }
+//   };
+
+//   // Handle expense checkbox change
+//   const handleExpenseCheckboxChange = (id) => {
+//     setCheckedExpenses((prev) => {
+//       const newChecked = { ...prev, [id]: !prev[id] };
+//       const checkedCount = Object.values(newChecked).filter((checked) => checked).length;
+//       if (checkedCount === 0) {
+//         Swal.fire({
+//           icon: "error",
+//           title: "Error",
+//           text: "At least one expense must be checked.",
+//           confirmButtonColor: "#4f46e5",
+//           timer: 3000,
+//           timerProgressBar: true,
+//         });
+//         return prev;
+//       }
+
+//       const newEntries = { ...actualBudgetEntries };
+//       overheads.forEach((overhead) => {
+//         if (!newEntries[overhead.id]) {
+//           newEntries[overhead.id] = {
+//             splitted_budget: null,
+//             actual_value: null,
+//             difference_value: null,
+//             remarks: "",
+//             edited: false,
+//           };
+//         }
+//       });
+
+//       if (existingBudget && existingBudget.total_budget_value) {
+//         const checkedIds = Object.keys(newChecked)
+//           .filter((key) => newChecked[key])
+//           .map((key) => parseInt(key));
+//         const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
+//         const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
+//         let extraAssigned = 0;
+
+//         checkedIds.forEach((expenseId, idx) => {
+//           const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
+//           newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
+//           newEntries[expenseId].edited = false;
+//           extraAssigned += assignedValue;
+//         });
+
+//         const lastCheckedId = checkedIds[checkedIds.length - 1];
+//         if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
+//           newEntries[lastCheckedId].splitted_budget = (
+//             parseFloat(newEntries[lastCheckedId].splitted_budget) +
+//             (existingBudget.total_budget_value - extraAssigned)
+//           ).toFixed(2);
+//         }
+
+//         Object.keys(newChecked).forEach((expenseId) => {
+//           if (!newChecked[expenseId]) {
+//             newEntries[expenseId].splitted_budget = null;
+//             newEntries[expenseId].edited = false;
+//           }
+//         });
+//       }
+
+//       setActualBudgetEntries(newEntries);
+//       return newChecked;
+//     });
+//   };
+
+//   // Handle budgeted value change
+//   const handleSplittedBudgetChange = (id, value) => {
+//     const parsedValue = value ? Math.floor(parseFloat(value)) : 0;
+//     if (parsedValue < 0) {
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "Budget value cannot be negative.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//       return;
+//     }
+
+//     if (!existingBudget || !existingBudget.total_budget_value) {
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "No valid budget exists to allocate expenses.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//       return;
+//     }
+
+//     const checkedIds = Object.keys(checkedExpenses)
+//       .filter((key) => checkedExpenses[key])
+//       .map((key) => parseInt(key));
+
+//     const currentIndex = checkedIds.indexOf(parseInt(id));
+//     if (currentIndex === -1) return;
+
+//     setActualBudgetEntries((prev) => {
+//       const newEntries = { ...prev };
+
+//       overheads.forEach((overhead) => {
+//         if (!newEntries[overhead.id]) {
+//           newEntries[overhead.id] = {
+//             splitted_budget: null,
+//             actual_value: null,
+//             difference_value: null,
+//             remarks: "",
+//             edited: false,
+//           };
+//         }
+//       });
+
+//       newEntries[id] = {
+//         ...newEntries[id],
+//         splitted_budget: parsedValue.toFixed(2),
+//         edited: true,
+//       };
+
+//       const uneditedSubsequentIds = checkedIds
+//         .slice(currentIndex + 1)
+//         .filter((expenseId) => !newEntries[expenseId]?.edited);
+
+//       let currentSum = parsedValue;
+//       checkedIds.forEach((expenseId, idx) => {
+//         if (idx !== currentIndex && !uneditedSubsequentIds.includes(expenseId)) {
+//           currentSum += parseFloat(newEntries[expenseId]?.splitted_budget) || 0;
+//         }
+//       });
+
+//       const remainingBudget = Math.round((existingBudget.total_budget_value - currentSum) * 100) / 100;
+
+//       if (currentIndex < checkedIds.length - 1 && uneditedSubsequentIds.length > 0) {
+//         const splitCount = uneditedSubsequentIds.length;
+//         const splitValue = Math.floor(remainingBudget / splitCount);
+//         const remainder = Math.round((remainingBudget - splitValue * splitCount) * 100) / 100;
+//         let extraAssigned = 0;
+
+//         uneditedSubsequentIds.forEach((expenseId, idx) => {
+//           const assignedValue = idx < Math.floor(remainder) ? splitValue + 1 : splitValue;
+//           if (assignedValue < 0) {
+//             Swal.fire({
+//               icon: "error",
+//               title: "Error",
+//               text: `Adjusted value for ${
+//                 overheads.find((o) => o.id === expenseId)?.expense_name || "expense"
+//               } would be negative (${assignedValue.toFixed(2)}).`,
+//               confirmButtonColor: "#4f46e5",
+//               timer: 3000,
+//               timerProgressBar: true,
+//             });
+//             return prev;
+//           }
+//           newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
+//           extraAssigned += assignedValue;
+//         });
+
+//         const lastSubsequentId = uneditedSubsequentIds[uneditedSubsequentIds.length - 1];
+//         if (lastSubsequentId && extraAssigned !== remainingBudget) {
+//           const adjustedValue =
+//             parseFloat(newEntries[lastSubsequentId].splitted_budget) + (remainingBudget - extraAssigned);
+//           if (adjustedValue < 0) {
+//             Swal.fire({
+//               icon: "error",
+//               title: "Error",
+//               text: `Adjusted value for ${
+//                 overheads.find((o) => o.id === lastSubsequentId)?.expense_name || "expense"
+//               } would be negative (${adjustedValue.toFixed(2)}).`,
+//               confirmButtonColor: "#4f46e5",
+//               timer: 3000,
+//               timerProgressBar: true,
+//             });
+//             return prev;
+//           }
+//           newEntries[lastSubsequentId].splitted_budget = adjustedValue.toFixed(2);
+//         }
+//       } else {
+//         const uneditedIds = checkedIds.filter(
+//           (expenseId) => !newEntries[expenseId]?.edited && expenseId !== parseInt(id)
+//         );
+//         const targetId = uneditedIds.length > 0 ? uneditedIds[0] : checkedIds[0];
+//         if (targetId && targetId !== parseInt(id)) {
+//           const newAdjustedValue = (parseFloat(newEntries[targetId].splitted_budget) || 0) + remainingBudget;
+//           if (newAdjustedValue < 0) {
+//             Swal.fire({
+//               icon: "error",
+//               title: "Error",
+//               text: `Adjusted value for ${
+//                 overheads.find((o) => o.id === targetId)?.expense_name || "first expense"
+//               } would be negative (${newAdjustedValue.toFixed(2)}).`,
+//               confirmButtonColor: "#4f46e5",
+//               timer: 3000,
+//               timerProgressBar: true,
+//             });
+//             return prev;
+//           }
+//           newEntries[targetId].splitted_budget = newAdjustedValue.toFixed(2);
+//         }
+//       }
+
+//       return newEntries;
+//     });
+//   };
+
+//   // Handle form submission
+//   const handleSubmit = async () => {
+//     if (
+//       selectedCompany &&
+//       selectedProject &&
+//       selectedSite &&
+//       selectedWorkDescription &&
+//       budgetPercentage &&
+//       budgetValue
+//     ) {
+//       await savePoBudget();
+//     } else {
+//       await Swal.fire({
+//         icon: "error",
+//         title: "Error",
+//         text: "Please select all fields and enter budget details before submitting.",
+//         confirmButtonColor: "#4f46e5",
+//         timer: 3000,
+//         timerProgressBar: true,
+//       });
+//     }
+//   };
+
+//   // Load companies on mount
+//   useEffect(() => {
+//     fetchCompanies();
+//   }, []);
+
+//   // Fetch projects when a company is selected
+//   useEffect(() => {
+//     if (selectedCompany) {
+//       fetchProjects(selectedCompany.value);
+//       setProjects([]);
+//       setSites([]);
+//       setWorkDescriptions([]);
+//       setSelectedProject(null);
+//       setSelectedSite(null);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     } else {
+//       setProjects([]);
+//       setSites([]);
+//       setWorkDescriptions([]);
+//       setSelectedProject(null);
+//       setSelectedSite(null);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     }
+//   }, [selectedCompany]);
+
+//   // Fetch sites when a project is selected
+//   useEffect(() => {
+//     if (selectedProject) {
+//       fetchSites(selectedProject.value);
+//       setSites([]);
+//       setWorkDescriptions([]);
+//       setSelectedSite(null);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     } else {
+//       setSites([]);
+//       setWorkDescriptions([]);
+//       setSelectedSite(null);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     }
+//   }, [selectedProject]);
+
+//   // Fetch work descriptions when a site is selected
+//   useEffect(() => {
+//     if (selectedSite) {
+//       fetchWorkDescriptions(selectedSite.value);
+//       setWorkDescriptions([]);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     } else {
+//       setWorkDescriptions([]);
+//       setSelectedWorkDescription(null);
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     }
+//   }, [selectedSite]);
+
+//   // Fetch budget details and check budget existence when a work description is selected
+//   useEffect(() => {
+//     if (selectedSite && selectedWorkDescription) {
+//       fetchBudgetDetails(selectedSite.value, selectedWorkDescription.value);
+//       checkBudgetExists(selectedSite.value, selectedWorkDescription.value);
+//     } else {
+//       setBudgetData(null);
+//       setExistingBudget(null);
+//       setBudgetPercentage("");
+//       setBudgetValue("");
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     }
+//   }, [selectedSite, selectedWorkDescription]);
+
+//   // Fetch overheads and actual budget entries when budget exists
+//   useEffect(() => {
+//     if (existingBudget && existingBudget.id) {
+//       fetchOverheads(existingBudget.id);
+//       fetchActualBudgetEntries(existingBudget.id);
+//     } else {
+//       setOverheads([]);
+//       setCheckedExpenses({});
+//       setActualBudgetEntries({});
+//       setIsAllocated(false);
+//     }
+//   }, [existingBudget]);
+
+//   // Calculate chart data for total budget, actual, and balance
+//   const chartData = existingBudget && actualBudgetEntries
+//     ? (() => {
+//         const budgetedValue = Object.values(actualBudgetEntries)
+//           .filter((entry) => entry.splitted_budget !== null)
+//           .reduce((sum, entry) => sum + parseFloat(entry.splitted_budget || 0), 0);
+//         const actualValue = Object.values(actualBudgetEntries)
+//           .filter((entry) => entry.actual_value !== null)
+//           .reduce((sum, entry) => sum + parseFloat(entry.actual_value || 0), 0);
+//         const balanceValue = budgetedValue - actualValue; // Total Budgeted - Total Actual
+
+//         return [
+//           { name: "Budgeted Value", value: budgetedValue, fill: "#92c352" },
+//           { name: "Actual Value", value: actualValue, fill: "#40A4DF" },
+//           { name: "Balance", value: Math.abs(balanceValue), fill: balanceValue < 0 ? "#C84D4D" : "#f0af0a" },
+//         ];
+//       })()
+//     : [];
+
+//   // Calculate chart data for individual expenses (Budgeted vs Actual)
+//   const expenseChartData = overheads
+//     .filter((overhead) =>
+//       isAllocated ? actualBudgetEntries[overhead.id]?.splitted_budget !== null : true
+//     )
+//     .map((overhead) => {
+//       const budgeted = parseFloat(actualBudgetEntries[overhead.id]?.splitted_budget) || 0;
+//       const actual = parseFloat(actualBudgetEntries[overhead.id]?.actual_value) || 0;
+//       const actualExceedsBudget = actual > budgeted;
+//       return {
+//         name: overhead.expense_name,
+//         budgeted: budgeted,
+//         actual: actual,
+//         actualFill: actualExceedsBudget ? "#C84D4D" : "#40A4DF",
+//       };
+//     });
+
+//   return (
+//     <div className="p-4 sm:p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+//       <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-6">
+//         Project Projection
+//       </h2>
+//       {loading && (
+//         <div className="flex justify-center items-center h-full min-h-[50vh]">
+//           <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-b-4 border-indigo-600"></div>
+//         </div>
+//       )}
+//       {error && (
+//         <div className="p-4 sm:p-6 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg text-sm sm:text-base animate-pulse mb-4">
+//           {error}
+//         </div>
+//       )}
+//       {!loading && !error && (
+//         <div className="space-y-6">
+//           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+//             <div>
+//               <label className="block text-sm font-medium text-gray-700 mb-1">
+//                 Select Company
+//               </label>
+//               <Select
+//                 options={companies}
+//                 value={selectedCompany}
+//                 onChange={setSelectedCompany}
+//                 placeholder="Select a company..."
+//                 className="text-sm"
+//                 isClearable
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-gray-700 mb-1">
+//                 Select Cost Center
+//               </label>
+//               <Select
+//                 options={projects}
+//                 value={selectedProject}
+//                 onChange={setSelectedProject}
+//                 placeholder="Select a cost center..."
+//                 className="text-sm"
+//                 isDisabled={!selectedCompany}
+//                 isClearable
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-gray-700 mb-1">
+//                 Select Site
+//               </label>
+//               <Select
+//                 options={sites}
+//                 value={selectedSite}
+//                 onChange={setSelectedSite}
+//                 placeholder="Select a site..."
+//                 className="text-sm"
+//                 isDisabled={!selectedProject}
+//                 isClearable
+//               />
+//             </div>
+//           </div>
+//           <div className="space-y-4">
+//             <div>
+//               <label className="block text-sm font-medium text-gray-700 mb-1">
+//                 Select Work Description
+//               </label>
+//               <Select
+//                 options={workDescriptions}
+//                 value={selectedWorkDescription}
+//                 onChange={setSelectedWorkDescription}
+//                 placeholder="Select a work description..."
+//                 className="text-sm"
+//                 isDisabled={!selectedSite}
+//                 isClearable
+//               />
+//             </div>
+//           </div>
+//           {budgetData && (
+//             <div className="space-y-6">
+//               <div className="overflow-x-auto">
+//                 <table className="min-w-full bg-white border border-gray-200">
+//                   <thead>
+//                     <tr className="bg-gray-100">
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+//                         Total PO Quantity
+//                       </th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+//                         Unit of Measure
+//                       </th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+//                         Total Rate
+//                       </th>
+//                     </tr>
+//                   </thead>
+//                   <tbody>
+//                     <tr>
+//                       <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                         {budgetData.total_po_qty}
+//                       </td>
+//                       <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                         {budgetData.uom}
+//                       </td>
+//                       <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                         Rs.{budgetData.total_rate.toFixed(2)}
+//                       </td>
+//                     </tr>
+//                   </tbody>
+//                 </table>
+//               </div>
+//               <div className="flex flex-col sm:flex-row gap-4 items-start">
+//                 <div className="p-4 bg-indigo-50 rounded-lg shadow-sm w-full sm:w-1/3">
+//                   <h3 className="text-lg font-medium text-gray-800">
+//                     Total PO Value
+//                   </h3>
+//                   <p className="text-2xl font-bold text-indigo-600">
+//                     Rs.{budgetData.total_po_value.toFixed(2)}
+//                   </p>
+//                 </div>
+//                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-2/3 items-start">
+//                   <div className="flex flex-col gap-2 w-full sm:w-1/2">
+//                     {existingBudget ? (
+//                       <>
+//                         <p className="text-sm font-medium text-gray-700">
+//                           Budget Percentage: {budgetPercentage}%
+//                         </p>
+//                         <p className="text-sm font-medium text-gray-700">
+//                           Budget Value: Rs.{budgetValue}
+//                         </p>
+//                       </>
+//                     ) : (
+//                       <>
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 mb-1">
+//                             Budget Percentage (%)
+//                           </label>
+//                           <input
+//                             type="number"
+//                             step="any"
+//                             min="0"
+//                             max="100"
+//                             value={budgetPercentage}
+//                             onChange={handleBudgetPercentageChange}
+//                             placeholder="Enter percentage (0-100)"
+//                             className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+//                           />
+//                         </div>
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 mb-1">
+//                             Budget Value (Rs.)
+//                           </label>
+//                           <input
+//                             type="number"
+//                             step="any"
+//                             min="0"
+//                             max={budgetData ? budgetData.total_po_value : undefined}
+//                             value={budgetValue}
+//                             onChange={handleBudgetValueChange}
+//                             placeholder="Enter budget value"
+//                             className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+//                           />
+//                         </div>
+//                       </>
+//                     )}
+//                   </div>
+//                   {chartData.length > 0 && (
+//                     <div className="w-full sm:w-1/2 h-48">
+//                       <h4 className="text-sm font-medium text-gray-700 mb-2">Overall Budget Summary</h4>
+//                       <ResponsiveContainer width="100%" height="100%">
+//                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+//                           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+//                           <YAxis hide tickFormatter={(value) => `₹${value.toLocaleString("en-IN")}`} />
+//                           <Tooltip
+//                             formatter={(value) => `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+//                             labelStyle={{ fontSize: 12 }}
+//                             itemStyle={{ fontSize: 12 }}
+//                           />
+//                           <Bar dataKey="value" radius={[4, 4, 0, 0]} />
+//                         </BarChart>
+//                       </ResponsiveContainer>
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+//               {!existingBudget && (
+//                 <button
+//                   onClick={handleSubmit}
+//                   className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+//                   disabled={
+//                     !selectedCompany ||
+//                     !selectedProject ||
+//                     !selectedSite ||
+//                     !selectedWorkDescription ||
+//                     !budgetPercentage ||
+//                     !budgetValue
+//                   }
+//                 >
+//                   Submit
+//                 </button>
+//               )}
+//             </div>
+//           )}
+//           {existingBudget && existingBudget.total_budget_value && overheads.length > 0 && (
+//             <div className="mt-6">
+//               <div className="flex items-center justify-between mb-4">
+//                 <h3 className="text-lg font-medium text-gray-800">Expense Allocation</h3>
+//               </div>
+//               <div className="overflow-x-auto">
+//                 <table className="min-w-full bg-white border border-gray-200">
+//                   <thead>
+//                     <tr className="bg-gray-100">
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">S.No</th>
+//                       {!isAllocated && (
+//                         <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Select</th>
+//                       )}
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+//                         List of Expense
+//                         {!isAllocated && (
+//                           <button
+//                             onClick={saveOverhead}
+//                             className="ml-2 inline-flex p-1 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all duration-200"
+//                             title="Add New Overhead"
+//                           >
+//                             <Plus size={16} />
+//                           </button>
+//                         )}
+//                       </th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Budgeted Value (Rs.)</th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Actual Value (Rs.)</th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Balance (Rs.)</th>
+//                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Remarks</th>
+//                     </tr>
+//                   </thead>
+//                   <tbody>
+//                     {overheads
+//                       .filter((overhead) =>
+//                         isAllocated ? actualBudgetEntries[overhead.id]?.splitted_budget !== null : true
+//                       )
+//                       .map((overhead, index) => {
+//                         const budgeted = parseFloat(actualBudgetEntries[overhead.id]?.splitted_budget) || 0;
+//                         const actual = parseFloat(actualBudgetEntries[overhead.id]?.actual_value) || 0;
+//                         const balance = budgeted - actual; // Budgeted - Actual for each expense
+//                         return (
+//                           <tr key={overhead.id}>
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">{index + 1}</td>
+//                             {!isAllocated && (
+//                               <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                                 <input
+//                                   type="checkbox"
+//                                   checked={!!checkedExpenses[overhead.id]}
+//                                   onChange={() => handleExpenseCheckboxChange(overhead.id)}
+//                                   disabled={overhead.is_default === 1}
+//                                 />
+//                               </td>
+//                             )}
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">{overhead.expense_name}</td>
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                               {isAllocated ? (
+//                                 actualBudgetEntries[overhead.id]?.splitted_budget || "N/A"
+//                               ) : checkedExpenses[overhead.id] ? (
+//                                 <input
+//                                   type="number"
+//                                   step="1"
+//                                   min="0"
+//                                   value={
+//                                     actualBudgetEntries[overhead.id]?.splitted_budget
+//                                       ? Math.floor(parseFloat(actualBudgetEntries[overhead.id].splitted_budget))
+//                                       : ""
+//                                   }
+//                                   onChange={(e) => handleSplittedBudgetChange(overhead.id, e.target.value)}
+//                                   className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+//                                   placeholder="Enter integer value"
+//                                 />
+//                               ) : (
+//                                 "N/A"
+//                               )}
+//                             </td>
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                               {actualBudgetEntries[overhead.id]?.actual_value || "null"}
+//                             </td>
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                               {actualBudgetEntries[overhead.id]?.splitted_budget && actualBudgetEntries[overhead.id]?.actual_value
+//                                 ? balance.toFixed(2)
+//                                 : "null"}
+//                             </td>
+//                             <td className="py-2 px-4 border-b text-sm text-gray-800">
+//                               {actualBudgetEntries[overhead.id]?.remarks || "null"}
+//                             </td>
+//                           </tr>
+//                         );
+//                       })}
+//                   </tbody>
+//                 </table>
+//               </div>
+//               {expenseChartData.length > 0 && (
+//                 <div className="mt-6">
+//                   <h4 className="text-sm font-medium text-gray-700 mb-2">Expense Budget vs Actual</h4>
+//                   <ResponsiveContainer width="100%" height={400}>
+//                     <BarChart data={expenseChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+//                       <XAxis
+//                         dataKey="name"
+//                         tick={{ fontSize: 12 }}
+//                         angle={-45}
+//                         textAnchor="end"
+//                         interval={0}
+//                         height={100}
+//                       />
+//                       <YAxis tickFormatter={(value) => `₹${value.toLocaleString("en-IN")}`} tick={{ fontSize: 12 }} />
+//                       <Tooltip
+//                         formatter={(value) => `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+//                         labelStyle={{ fontSize: 12 }}
+//                         itemStyle={{ fontSize: 12 }}
+//                       />
+//                       <Bar dataKey="budgeted" fill="#92c352" name="Budgeted Value" radius={[4, 4, 0, 0]} />
+//                       <Bar dataKey="actual" fill="#40A4DF" name="Actual Value" radius={[4, 4, 0, 0]}>
+//                         {expenseChartData.map((entry, index) => (
+//                           <Cell key={`cell-${index}`} fill={entry.actualFill} />
+//                         ))}
+//                       </Bar>
+//                     </BarChart>
+//                   </ResponsiveContainer>
+//                 </div>
+//               )}
+//               {!isAllocated && (
+//                 <button
+//                   onClick={allocateBudget}
+//                   className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+//                 >
+//                   Allocate Budget
+//                 </button>
+//               )}
+//             </div>
+//           )}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default ProjectProjection;
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Select from "react-select";
 import Swal from "sweetalert2";
 import { Plus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const ProjectProjection = () => {
   const [companies, setCompanies] = useState([]);
@@ -29,7 +1334,7 @@ const ProjectProjection = () => {
   useEffect(() => {
     const callCalculateLabourBudget = async () => {
       try {
-        await axios.get("http://103.118.158.127/api/site-incharge/calculate-labour-budget");
+        await axios.get("http://localhost:5000/site-incharge/calculate-labour-budget");
       } catch (error) {
         console.error("Error calling calculate-labour-budget API:", error.message);
       }
@@ -41,14 +1346,16 @@ const ProjectProjection = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/admin/companies");
+      const response = await axios.get("http://localhost:5000/admin/companies");
       if (response.data.success) {
-        setCompanies(
-          response.data.data.map((company) => ({
-            value: company.company_id,
-            label: company.company_name,
-          }))
-        );
+        const companyOptions = response.data.data.map((company) => ({
+          value: company.company_id,
+          label: company.company_name,
+        }));
+        setCompanies(companyOptions);
+        if (response.data.data.length === 1) {
+          setSelectedCompany(companyOptions[0]);
+        }
       } else {
         setError("Failed to fetch companies.");
       }
@@ -64,14 +1371,16 @@ const ProjectProjection = () => {
   const fetchProjects = async (companyId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://103.118.158.127/api/admin/projects/${companyId}`);
+      const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
       if (response.data.success) {
-        setProjects(
-          response.data.data.map((project) => ({
-            value: project.pd_id,
-            label: project.project_name,
-          }))
-        );
+        const projectOptions = response.data.data.map((project) => ({
+          value: project.pd_id,
+          label: project.project_name,
+        }));
+        setProjects(projectOptions);
+        if (response.data.data.length === 1) {
+          setSelectedProject(projectOptions[0]);
+        }
       } else {
         setError("Failed to fetch projects.");
       }
@@ -87,14 +1396,16 @@ const ProjectProjection = () => {
   const fetchSites = async (projectId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://103.118.158.127/api/admin/sites/${projectId}`);
+      const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
       if (response.data.success) {
-        setSites(
-          response.data.data.map((site) => ({
-            value: site.site_id,
-            label: `${site.site_name} (PO: ${site.po_number})`,
-          }))
-        );
+        const siteOptions = response.data.data.map((site) => ({
+          value: site.site_id,
+          label: `${site.site_name} (PO: ${site.po_number})`,
+        }));
+        setSites(siteOptions);
+        if (response.data.data.length === 1) {
+          setSelectedSite(siteOptions[0]);
+        }
       } else {
         setError("Failed to fetch sites.");
       }
@@ -111,15 +1422,17 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://103.118.158.127/api/admin/work-descriptions-by-site/${siteId}`
+        `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
       );
       if (response.data.success) {
-        setWorkDescriptions(
-          response.data.data.map((desc) => ({
-            value: desc.desc_id,
-            label: desc.desc_name,
-          }))
-        );
+        const descOptions = response.data.data.map((desc) => ({
+          value: desc.desc_id,
+          label: desc.desc_name,
+        }));
+        setWorkDescriptions(descOptions);
+        if (response.data.data.length === 1) {
+          setSelectedWorkDescription(descOptions[0]);
+        }
       } else {
         setError("Failed to fetch work descriptions.");
       }
@@ -136,7 +1449,7 @@ const ProjectProjection = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://103.118.158.127/api/admin/po-total-budget/${siteId}/${descId}`
+        `http://localhost:5000/admin/po-total-budget/${siteId}/${descId}`
       );
       if (response.data.success) {
         setBudgetData({
@@ -158,7 +1471,7 @@ const ProjectProjection = () => {
   // Check if budget exists for site_id and desc_id
   const checkBudgetExists = async (siteId, descId) => {
     try {
-      const response = await axios.get("http://103.118.158.127/api/admin/po-budget", {
+      const response = await axios.get("http://localhost:5000/admin/po-budget", {
         params: { site_id: siteId, desc_id: descId },
       });
       if (response.data.success && response.data.data) {
@@ -191,7 +1504,7 @@ const ProjectProjection = () => {
   // Fetch overheads and initialize actualBudgetEntries
   const fetchOverheads = async (po_budget_id) => {
     try {
-      const response = await axios.get("http://103.118.158.127/api/admin/overheads", {
+      const response = await axios.get("http://localhost:5000/admin/overheads", {
         params: po_budget_id ? { po_budget_id } : {},
       });
       if (response.data.success) {
@@ -203,6 +1516,7 @@ const ProjectProjection = () => {
           initialChecked[overhead.id] = overhead.is_default === 1;
           newEntries[overhead.id] = {
             splitted_budget: null,
+            percentage: null,
             actual_value: null,
             difference_value: null,
             remarks: "",
@@ -211,34 +1525,6 @@ const ProjectProjection = () => {
         });
 
         setCheckedExpenses(initialChecked);
-
-        if (existingBudget && existingBudget.total_budget_value) {
-          const checkedIds = Object.keys(initialChecked)
-            .filter((id) => initialChecked[id])
-            .map((id) => parseInt(id));
-          const checkedCount = checkedIds.length;
-          if (checkedCount > 0) {
-            const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
-            const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
-            let extraAssigned = 0;
-
-            checkedIds.forEach((id, idx) => {
-              const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
-              newEntries[id].splitted_budget = assignedValue.toFixed(2);
-              newEntries[id].edited = false;
-              extraAssigned += assignedValue;
-            });
-
-            const lastCheckedId = checkedIds[checkedIds.length - 1];
-            if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
-              newEntries[lastCheckedId].splitted_budget = (
-                parseFloat(newEntries[lastCheckedId].splitted_budget) +
-                (existingBudget.total_budget_value - extraAssigned)
-              ).toFixed(2);
-            }
-          }
-        }
-
         setActualBudgetEntries(newEntries);
       } else {
         setError("Failed to fetch overheads.");
@@ -252,13 +1538,18 @@ const ProjectProjection = () => {
   // Fetch actual budget entries
   const fetchActualBudgetEntries = async (po_budget_id) => {
     try {
-      const response = await axios.get(`http://103.118.158.127/api/admin/actual-budget/${po_budget_id}`);
+      const response = await axios.get(`http://localhost:5000/admin/actual-budget/${po_budget_id}`);
       if (response.data.success) {
         const entries = response.data.data || {};
         const processedEntries = {};
         Object.keys(entries).forEach((overheadId) => {
+          const val = parseFloat(entries[overheadId].splitted_budget) || 0;
+          const perc = existingBudget?.total_budget_value > 0 
+            ? (val / existingBudget.total_budget_value * 100).toFixed(2) 
+            : "0.00";
           processedEntries[overheadId] = {
             ...entries[overheadId],
+            percentage: perc,
             edited: true,
           };
         });
@@ -283,7 +1574,7 @@ const ProjectProjection = () => {
   // Save budget details to backend
   const savePoBudget = async () => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/admin/save-po-budget", {
+      const response = await axios.post("http://localhost:5000/admin/save-po-budget", {
         site_id: selectedSite.value,
         desc_id: selectedWorkDescription.value,
         total_po_value: budgetData.total_po_value,
@@ -342,7 +1633,7 @@ const ProjectProjection = () => {
 
     if (expense_name) {
       try {
-        const response = await axios.post("http://103.118.158.127/api/admin/save-overhead", {
+        const response = await axios.post("http://localhost:5000/admin/save-overhead", {
           expense_name,
         });
         if (response.data.success) {
@@ -364,6 +1655,7 @@ const ProjectProjection = () => {
             ...prev,
             [newOverhead.id]: {
               splitted_budget: null,
+              percentage: null,
               actual_value: null,
               difference_value: null,
               remarks: "",
@@ -392,6 +1684,63 @@ const ProjectProjection = () => {
         });
       }
     }
+  };
+
+  // Auto distribute budget evenly among checked expenses
+  const autoDistribute = () => {
+    if (!existingBudget || !existingBudget.total_budget_value) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No valid budget exists to distribute.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    const checkedIds = Object.keys(checkedExpenses)
+      .filter((id) => checkedExpenses[id])
+      .map((id) => parseInt(id));
+
+    const checkedCount = checkedIds.length;
+    if (checkedCount === 0) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "At least one expense must be checked.",
+        confirmButtonColor: "#4f46e5",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    const total = existingBudget.total_budget_value;
+    const baseValue = (total / checkedCount).toFixed(2);
+    let totalAssigned = 0;
+
+    setActualBudgetEntries((prev) => {
+      const newEntries = { ...prev };
+      checkedIds.forEach((id, idx) => {
+        let assigned = parseFloat(baseValue);
+        if (idx === checkedCount - 1) {
+          assigned = total - totalAssigned;
+          assigned = assigned.toFixed(2);
+        } else {
+          totalAssigned += assigned;
+        }
+        const perc = (parseFloat(assigned) / total * 100).toFixed(2);
+        newEntries[id] = {
+          ...newEntries[id],
+          splitted_budget: assigned,
+          percentage: perc,
+          edited: true,
+        };
+      });
+      return newEntries;
+    });
   };
 
   // Allocate budget
@@ -444,7 +1793,7 @@ const ProjectProjection = () => {
     }
 
     try {
-      const response = await axios.post("http://103.118.158.127/api/admin/save-actual-budget", {
+      const response = await axios.post("http://localhost:5000/admin/save-actual-budget", {
         po_budget_id: existingBudget.id,
         actual_budget_entries: entries,
       });
@@ -572,218 +1921,136 @@ const ProjectProjection = () => {
         });
         return prev;
       }
-
-      const newEntries = { ...actualBudgetEntries };
-      overheads.forEach((overhead) => {
-        if (!newEntries[overhead.id]) {
-          newEntries[overhead.id] = {
+      if (!newChecked[id]) {
+        setActualBudgetEntries((prevEntries) => ({
+          ...prevEntries,
+          [id]: {
+            ...prevEntries[id],
             splitted_budget: null,
-            actual_value: null,
-            difference_value: null,
-            remarks: "",
+            percentage: null,
             edited: false,
-          };
-        }
-      });
-
-      if (existingBudget && existingBudget.total_budget_value) {
-        const checkedIds = Object.keys(newChecked)
-          .filter((key) => newChecked[key])
-          .map((key) => parseInt(key));
-        const splitValue = Math.floor(existingBudget.total_budget_value / checkedCount);
-        const remainder = Math.floor(existingBudget.total_budget_value - splitValue * checkedCount);
-        let extraAssigned = 0;
-
-        checkedIds.forEach((expenseId, idx) => {
-          const assignedValue = idx < remainder ? splitValue + 1 : splitValue;
-          newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
-          newEntries[expenseId].edited = false;
-          extraAssigned += assignedValue;
-        });
-
-        const lastCheckedId = checkedIds[checkedIds.length - 1];
-        if (lastCheckedId && extraAssigned !== existingBudget.total_budget_value) {
-          newEntries[lastCheckedId].splitted_budget = (
-            parseFloat(newEntries[lastCheckedId].splitted_budget) +
-            (existingBudget.total_budget_value - extraAssigned)
-          ).toFixed(2);
-        }
-
-        Object.keys(newChecked).forEach((expenseId) => {
-          if (!newChecked[expenseId]) {
-            newEntries[expenseId].splitted_budget = null;
-            newEntries[expenseId].edited = false;
-          }
-        });
+          },
+        }));
       }
-
-      setActualBudgetEntries(newEntries);
       return newChecked;
     });
   };
 
-  // Handle budgeted value change
-  const handleSplittedBudgetChange = (id, value) => {
-    const parsedValue = value ? Math.floor(parseFloat(value)) : 0;
-    if (parsedValue < 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Budget value cannot be negative.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    if (!existingBudget || !existingBudget.total_budget_value) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No valid budget exists to allocate expenses.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      return;
-    }
-
-    const checkedIds = Object.keys(checkedExpenses)
-      .filter((key) => checkedExpenses[key])
-      .map((key) => parseInt(key));
-
-    const currentIndex = checkedIds.indexOf(parseInt(id));
-    if (currentIndex === -1) return;
-
-    setActualBudgetEntries((prev) => {
-      const newEntries = { ...prev };
-
-      overheads.forEach((overhead) => {
-        if (!newEntries[overhead.id]) {
-          newEntries[overhead.id] = {
-            splitted_budget: null,
-            actual_value: null,
-            difference_value: null,
-            remarks: "",
-            edited: false,
-          };
-        }
-      });
-
-      newEntries[id] = {
-        ...newEntries[id],
-        splitted_budget: parsedValue.toFixed(2),
-        edited: true,
-      };
-
-      const uneditedSubsequentIds = checkedIds
-        .slice(currentIndex + 1)
-        .filter((expenseId) => !newEntries[expenseId]?.edited);
-
-      let currentSum = parsedValue;
-      checkedIds.forEach((expenseId, idx) => {
-        if (idx !== currentIndex && !uneditedSubsequentIds.includes(expenseId)) {
-          currentSum += parseFloat(newEntries[expenseId]?.splitted_budget) || 0;
-        }
-      });
-
-      const remainingBudget = Math.round((existingBudget.total_budget_value - currentSum) * 100) / 100;
-
-      if (currentIndex < checkedIds.length - 1 && uneditedSubsequentIds.length > 0) {
-        const splitCount = uneditedSubsequentIds.length;
-        const splitValue = Math.floor(remainingBudget / splitCount);
-        const remainder = Math.round((remainingBudget - splitValue * splitCount) * 100) / 100;
-        let extraAssigned = 0;
-
-        uneditedSubsequentIds.forEach((expenseId, idx) => {
-          const assignedValue = idx < Math.floor(remainder) ? splitValue + 1 : splitValue;
-          if (assignedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === expenseId)?.expense_name || "expense"
-              } would be negative (${assignedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[expenseId].splitted_budget = assignedValue.toFixed(2);
-          extraAssigned += assignedValue;
-        });
-
-        const lastSubsequentId = uneditedSubsequentIds[uneditedSubsequentIds.length - 1];
-        if (lastSubsequentId && extraAssigned !== remainingBudget) {
-          const adjustedValue =
-            parseFloat(newEntries[lastSubsequentId].splitted_budget) + (remainingBudget - extraAssigned);
-          if (adjustedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === lastSubsequentId)?.expense_name || "expense"
-              } would be negative (${adjustedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[lastSubsequentId].splitted_budget = adjustedValue.toFixed(2);
-        }
-      } else {
-        const uneditedIds = checkedIds.filter(
-          (expenseId) => !newEntries[expenseId]?.edited && expenseId !== parseInt(id)
-        );
-        const targetId = uneditedIds.length > 0 ? uneditedIds[0] : checkedIds[0];
-        if (targetId && targetId !== parseInt(id)) {
-          const newAdjustedValue = (parseFloat(newEntries[targetId].splitted_budget) || 0) + remainingBudget;
-          if (newAdjustedValue < 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: `Adjusted value for ${
-                overheads.find((o) => o.id === targetId)?.expense_name || "first expense"
-              } would be negative (${newAdjustedValue.toFixed(2)}).`,
-              confirmButtonColor: "#4f46e5",
-              timer: 3000,
-              timerProgressBar: true,
-            });
-            return prev;
-          }
-          newEntries[targetId].splitted_budget = newAdjustedValue.toFixed(2);
-        }
-      }
-
-      return newEntries;
+  // Handle percentage change for individual expense
+const handlePercentageChange = (id, value) => {
+  let perc = value === '' ? '' : parseFloat(value);
+  if (value === '' || isNaN(perc) || perc < 0) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Percentage cannot be negative or invalid.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
     });
-  };
+    return;
+  }
+  if (perc > 100) {
+    perc = 100;
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Percentage cannot exceed 100%.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    if (
-      selectedCompany &&
-      selectedProject &&
-      selectedSite &&
-      selectedWorkDescription &&
-      budgetPercentage &&
-      budgetValue
-    ) {
-      await savePoBudget();
-    } else {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Please select all fields and enter budget details before submitting.",
-        confirmButtonColor: "#4f46e5",
-        timer: 3000,
-        timerProgressBar: true,
-      });
+  const total = existingBudget.total_budget_value;
+  const newValue = (perc / 100 * total).toFixed(2);
+
+  setActualBudgetEntries((prev) => ({
+    ...prev,
+    [id]: {
+      ...prev[id],
+      percentage: value, // Store as entered (integer or with decimal if provided)
+      splitted_budget: newValue,
+      edited: true,
+    },
+  }));
+};
+
+  // Handle budgeted value change for individual expense
+ const handleSplittedBudgetChange = (id, value) => {
+  let val = parseFloat(value);
+  if (isNaN(val) || val < 0) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Budget value cannot be negative.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+    return;
+  }
+  const total = existingBudget.total_budget_value;
+  if (val > total) {
+    val = total;
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: `Budget value cannot exceed Rs.${total.toFixed(2)}.`,
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
+
+  const perc = (val / total * 100).toFixed(2);
+
+  setActualBudgetEntries((prev) => ({
+    ...prev,
+    [id]: {
+      ...prev[id],
+      splitted_budget: val.toFixed(2),
+      percentage: perc.includes('.') ? perc : parseInt(perc).toString(), // Store as integer unless decimal exists
+      edited: true,
+    },
+  }));
+};
+
+  // Compute sums for validation
+const computeSums = () => {
+  let sumPerc = 0;
+  let sumBudget = 0;
+  Object.keys(checkedExpenses).forEach((id) => {
+    if (checkedExpenses[id]) {
+      sumPerc += parseFloat(actualBudgetEntries[id]?.percentage || 0);
+      sumBudget += parseFloat(actualBudgetEntries[id]?.splitted_budget || 0);
     }
-  };
+  });
+  return { sumPerc, sumBudget };
+};
+
+// Handle form submission
+const handleSubmit = async () => {
+  if (
+    selectedCompany &&
+    selectedProject &&
+    selectedSite &&
+    selectedWorkDescription &&
+    budgetPercentage &&
+    budgetValue
+  ) {
+    await savePoBudget(); // Corrected: Added space between `await` and `savePoBudget`
+  } else {
+    await Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Please select all fields and enter budget details before submitting.",
+      confirmButtonColor: "#4f46e5",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
+};
 
   // Load companies on mount
   useEffect(() => {
@@ -951,6 +2218,15 @@ const ProjectProjection = () => {
         actualFill: actualExceedsBudget ? "#C84D4D" : "#40A4DF",
       };
     });
+
+const { sumPerc, sumBudget } = computeSums();
+const total = existingBudget?.total_budget_value || 0;
+const percDiff = sumPerc - 100;
+const budgetDiff = sumBudget - total;
+const percError = percDiff > 0.01 ? `Excess by ${percDiff.toFixed(2)}%` : percDiff < -0.01 ? `Short by ${Math.abs(percDiff).toFixed(2)}%` : '';
+const budgetError = budgetDiff > 0.01 ? `Excess by Rs.${budgetDiff.toFixed(2)}` : budgetDiff < -0.01 ? `Short by Rs.${Math.abs(budgetDiff).toFixed(2)}` : '';
+const isValid = Math.abs(budgetDiff) <= 0.01;
+const successMessage = isValid && Math.abs(percDiff) <= 0.01 ? '100% of budgeted value allocated successfully!' : '';
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -1177,7 +2453,16 @@ const ProjectProjection = () => {
                           </button>
                         )}
                       </th>
-                      <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Budgeted Value (Rs.)</th>
+<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+  Budget Percentage (%)
+  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+  {percError && !successMessage && <span className="block text-red-500 text-xs">{percError}</span>}
+</th>
+<th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">
+  Budgeted Value (Rs.)
+  {successMessage && <span className="block text-green-500 text-xs">{successMessage}</span>}
+  {budgetError && !successMessage && <span className="block text-red-500 text-xs">{budgetError}</span>}
+</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Actual Value (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Balance (Rs.)</th>
                       <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-700">Remarks</th>
@@ -1208,20 +2493,34 @@ const ProjectProjection = () => {
                             <td className="py-2 px-4 border-b text-sm text-gray-800">{overhead.expense_name}</td>
                             <td className="py-2 px-4 border-b text-sm text-gray-800">
                               {isAllocated ? (
+                                actualBudgetEntries[overhead.id]?.percentage || "N/A"
+                              ) : checkedExpenses[overhead.id] ? (
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  max="100"
+                                  value={actualBudgetEntries[overhead.id]?.percentage || ""}
+                                  onChange={(e) => handlePercentageChange(overhead.id, e.target.value)}
+                                  className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  placeholder="Enter percentage"
+                                />
+                              ) : (
+                                "N/A"
+                              )}
+                            </td>
+                            <td className="py-2 px-4 border-b text-sm text-gray-800">
+                              {isAllocated ? (
                                 actualBudgetEntries[overhead.id]?.splitted_budget || "N/A"
                               ) : checkedExpenses[overhead.id] ? (
                                 <input
                                   type="number"
-                                  step="1"
+                                  step="any"
                                   min="0"
-                                  value={
-                                    actualBudgetEntries[overhead.id]?.splitted_budget
-                                      ? Math.floor(parseFloat(actualBudgetEntries[overhead.id].splitted_budget))
-                                      : ""
-                                  }
+                                  value={actualBudgetEntries[overhead.id]?.splitted_budget || ""}
                                   onChange={(e) => handleSplittedBudgetChange(overhead.id, e.target.value)}
                                   className="w-full p-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                  placeholder="Enter integer value"
+                                  placeholder="Enter value"
                                 />
                               ) : (
                                 "N/A"
@@ -1274,12 +2573,21 @@ const ProjectProjection = () => {
                 </div>
               )}
               {!isAllocated && (
-                <button
-                  onClick={allocateBudget}
-                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                >
-                  Allocate Budget
-                </button>
+                <>
+                  <button
+                    onClick={autoDistribute}
+                    className="mt-4 mr-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                  >
+                    Auto Distribute
+                  </button>
+                  <button
+                    onClick={allocateBudget}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+                    disabled={!isValid}
+                  >
+                    Allocate Budget
+                  </button>
+                </>
               )}
             </div>
           )}

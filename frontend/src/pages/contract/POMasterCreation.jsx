@@ -322,7 +322,7 @@ useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         setLoading((prev) => ({ ...prev, inchargeTypes: true }));
-        const inchargeResponse = await axios.get("http://103.118.158.127/api/reckoner/incharge-types");
+        const inchargeResponse = await axios.get("http://localhost:5000/reckoner/incharge-types");
         setInchargeTypes(
           inchargeResponse.data.data.map((item) => ({
             id: item.incharge_id,
@@ -331,7 +331,7 @@ useEffect(() => {
         );
 
         setLoading((prev) => ({ ...prev, locations: true }));
-        const locationResponse = await axios.get("http://103.118.158.127/api/reckoner/locations");
+        const locationResponse = await axios.get("http://localhost:5000/reckoner/locations");
         setLocations(
           locationResponse.data.data.map((item) => ({
             id: item.location_id,
@@ -340,7 +340,7 @@ useEffect(() => {
         );
 
         setLoading((prev) => ({ ...prev, reckonerTypes: true }));
-        const reckonerTypeResponse = await axios.get("http://103.118.158.127/api/reckoner/reckoner-types");
+        const reckonerTypeResponse = await axios.get("http://localhost:5000/reckoner/reckoner-types");
         setReckonerTypes(
           reckonerTypeResponse.data.data.map((item) => ({
             id: item.type_id,
@@ -378,7 +378,7 @@ useEffect(() => {
         try {
           setLoading((prev) => ({ ...prev, sites: true }));
           const response = await axios.get(
-            `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+            `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
           );
           const sitesData = response.data.data || [];
           setSites(sitesData);
@@ -386,7 +386,7 @@ useEffect(() => {
           const siteReckonerPromises = sitesData.map(async (site) => {
             try {
               const reckonerResponse = await axios.get(
-                `http://103.118.158.127/api/reckoner/site-reckoner/${site.site_id}`
+                `http://localhost:5000/reckoner/site-reckoner/${site.site_id}`
               );
               return { siteId: site.site_id, data: reckonerResponse.data.data || [] };
             } catch (err) {
@@ -428,15 +428,15 @@ useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading((prev) => ({ ...prev, categories: true }));
-        const categoriesRes = await axios.get("http://103.118.158.127/api/reckoner/categories");
+        const categoriesRes = await axios.get("http://localhost:5000/reckoner/categories");
         setCategories(categoriesRes.data.data || []);
 
         setLoading((prev) => ({ ...prev, subcategories: true }));
-        const subcategoriesRes = await axios.get("http://103.118.158.127/api/reckoner/subcategories");
+        const subcategoriesRes = await axios.get("http://localhost:5000/reckoner/subcategories");
         setSubcategories(subcategoriesRes.data.data || []);
 
         setLoading((prev) => ({ ...prev, workItems: true }));
-        const workItemsRes = await axios.get("http://103.118.158.127/api/reckoner/work-items");
+        const workItemsRes = await axios.get("http://localhost:5000/reckoner/work-items");
         setWorkItems(workItemsRes.data.data || []);
       } catch (err) {
         Swal.fire({
@@ -516,7 +516,7 @@ useEffect(() => {
         reckoner_type_id: editSiteData.reckoner_type_id,
       };
 
-      await axios.put(`http://103.118.158.127/api/reckoner/sites/${siteId}`, updateData);
+      await axios.put(`http://localhost:5000/reckoner/sites/${siteId}`, updateData);
 
       Swal.fire({
         position: "top-end",
@@ -530,7 +530,7 @@ useEffect(() => {
       });
 
       const response = await axios.get(
-        `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+        `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
       );
       setSites(response.data.data || []);
       setEditingSiteId(null);
@@ -621,7 +621,7 @@ useEffect(() => {
 
   const handleCreateCategory = async (categoryName) => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/categories", {
+      const response = await axios.post("http://localhost:5000/reckoner/categories", {
         category_name: categoryName,
       });
       const newCategory = response.data.data;
@@ -692,7 +692,7 @@ useEffect(() => {
 
   const handleCreateWorkItem = async (descName) => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/work-items", {
+      const response = await axios.post("http://localhost:5000/reckoner/work-items", {
         desc_name: descName,
       });
       const newWorkItem = response.data.data;
@@ -777,7 +777,7 @@ useEffect(() => {
   const handleCreateSubcategory = async (categoryIndex, itemIndex) => {
     if (!newSubcategory) return;
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/subcategories", {
+      const response = await axios.post("http://localhost:5000/reckoner/subcategories", {
         subcategory_name: newSubcategory,
       });
       const newSubcat = response.data.data;
@@ -1038,7 +1038,7 @@ useEffect(() => {
   const processSite = async (poNumber) => {
     try {
       setLoading((prev) => ({ ...prev, processing: true }));
-      await axios.get(`http://103.118.158.127/api/sheet/process/${encodeURIComponent(poNumber)}`);
+      await axios.get(`http://localhost:5000/sheet/process/${encodeURIComponent(poNumber)}`);
       return true;
     } catch (error) {
       console.error("Error processing site:", error);
@@ -1107,7 +1107,7 @@ useEffect(() => {
         }),
       };
 
-      await axios.post("http://103.118.158.127/api/reckoner/reckoner", submissionData);
+      await axios.post("http://localhost:5000/reckoner/reckoner", submissionData);
       await processSite(formData.poNumber);
 
       Swal.fire({
@@ -1126,7 +1126,7 @@ useEffect(() => {
       setOpenCategories({ 0: true });
 
       const response = await axios.get(
-        `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+        `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
       );
       const sitesData = response.data.data || [];
       setSites(sitesData);
@@ -1134,7 +1134,7 @@ useEffect(() => {
       const siteReckonerPromises = sitesData.map(async (site) => {
         try {
           const reckonerResponse = await axios.get(
-            `http://103.118.158.127/api/reckoner/site-reckoner/${site.site_id}`
+            `http://localhost:5000/reckoner/site-reckoner/${site.site_id}`
           );
           return { siteId: site.site_id, data: reckonerResponse.data.data || [] };
         } catch (err) {
@@ -1165,6 +1165,8 @@ useEffect(() => {
       setLoading((prev) => ({ ...prev, submitting: false }));
     }
   };
+
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
@@ -1454,30 +1456,45 @@ useEffect(() => {
 
                         {siteReckonerData[site.site_id]?.length > 0 ? (
                           <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
-                                <tr>
-                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                    Category
-                                  </th>
-                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                    Description
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {siteReckonerData[site.site_id].map((item, index) => (
-                                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                                      {item.category_name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                                      {item.desc_name}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                        {/* Helper function to filter unique category-description pairs */}
+{(() => {
+  const isDuplicate = (item, index, array) => {
+    return array.findIndex((otherItem, otherIndex) => 
+      otherIndex < index && 
+      otherItem.category_name.toLowerCase() === item.category_name.toLowerCase() && 
+      otherItem.desc_name.toLowerCase() === item.desc_name.toLowerCase()
+    ) !== -1;
+  };
+
+  const uniqueItems = siteReckonerData[site.site_id]?.filter((item, index, array) => !isDuplicate(item, index, array)) || [];
+
+  return (
+    <table className="min-w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <thead className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
+        <tr>
+          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            Category
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            Description
+          </th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {uniqueItems.map((item, index) => (
+          <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+              {item.category_name}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+              {item.desc_name}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+})()}
                           </div>
                         ) : creatingReckonerSiteId === site.site_id ? (
                           <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">

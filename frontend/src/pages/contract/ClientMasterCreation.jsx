@@ -34,7 +34,7 @@ const ClientMasterCreation = () => {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/project/companies");
+      const response = await axios.get("http://localhost:5000/project/companies");
       const data = Array.isArray(response.data) ? response.data : [];
       
       // Sort clients by creation date (newest first)
