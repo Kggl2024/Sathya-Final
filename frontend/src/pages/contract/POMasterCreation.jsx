@@ -322,7 +322,7 @@ useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         setLoading((prev) => ({ ...prev, inchargeTypes: true }));
-        const inchargeResponse = await axios.get("http://103.118.158.127/api/reckoner/incharge-types");
+        const inchargeResponse = await axios.get("http://localhost:5000/reckoner/incharge-types");
         setInchargeTypes(
           inchargeResponse.data.data.map((item) => ({
             id: item.incharge_id,
@@ -331,7 +331,7 @@ useEffect(() => {
         );
 
         setLoading((prev) => ({ ...prev, locations: true }));
-        const locationResponse = await axios.get("http://103.118.158.127/api/reckoner/locations");
+        const locationResponse = await axios.get("http://localhost:5000/reckoner/locations");
         setLocations(
           locationResponse.data.data.map((item) => ({
             id: item.location_id,
@@ -340,7 +340,7 @@ useEffect(() => {
         );
 
         setLoading((prev) => ({ ...prev, reckonerTypes: true }));
-        const reckonerTypeResponse = await axios.get("http://103.118.158.127/api/reckoner/reckoner-types");
+        const reckonerTypeResponse = await axios.get("http://localhost:5000/reckoner/reckoner-types");
         setReckonerTypes(
           reckonerTypeResponse.data.data.map((item) => ({
             id: item.type_id,
@@ -378,7 +378,7 @@ useEffect(() => {
         try {
           setLoading((prev) => ({ ...prev, sites: true }));
           const response = await axios.get(
-            `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+            `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
           );
           const sitesData = response.data.data || [];
           setSites(sitesData);
@@ -386,7 +386,7 @@ useEffect(() => {
           const siteReckonerPromises = sitesData.map(async (site) => {
             try {
               const reckonerResponse = await axios.get(
-                `http://103.118.158.127/api/reckoner/site-reckoner/${site.site_id}`
+                `http://localhost:5000/reckoner/site-reckoner/${site.site_id}`
               );
               return { siteId: site.site_id, data: reckonerResponse.data.data || [] };
             } catch (err) {
@@ -428,15 +428,15 @@ useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading((prev) => ({ ...prev, categories: true }));
-        const categoriesRes = await axios.get("http://103.118.158.127/api/reckoner/categories");
+        const categoriesRes = await axios.get("http://localhost:5000/reckoner/categories");
         setCategories(categoriesRes.data.data || []);
 
         setLoading((prev) => ({ ...prev, subcategories: true }));
-        const subcategoriesRes = await axios.get("http://103.118.158.127/api/reckoner/subcategories");
+        const subcategoriesRes = await axios.get("http://localhost:5000/reckoner/subcategories");
         setSubcategories(subcategoriesRes.data.data || []);
 
         setLoading((prev) => ({ ...prev, workItems: true }));
-        const workItemsRes = await axios.get("http://103.118.158.127/api/reckoner/work-items");
+        const workItemsRes = await axios.get("http://localhost:5000/reckoner/work-items");
         setWorkItems(workItemsRes.data.data || []);
       } catch (err) {
         Swal.fire({
@@ -516,7 +516,7 @@ useEffect(() => {
         reckoner_type_id: editSiteData.reckoner_type_id,
       };
 
-      await axios.put(`http://103.118.158.127/api/reckoner/sites/${siteId}`, updateData);
+      await axios.put(`http://localhost:5000/reckoner/sites/${siteId}`, updateData);
 
       Swal.fire({
         position: "top-end",
@@ -530,7 +530,7 @@ useEffect(() => {
       });
 
       const response = await axios.get(
-        `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+        `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
       );
       setSites(response.data.data || []);
       setEditingSiteId(null);
@@ -621,7 +621,7 @@ useEffect(() => {
 
   const handleCreateCategory = async (categoryName) => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/categories", {
+      const response = await axios.post("http://localhost:5000/reckoner/categories", {
         category_name: categoryName,
       });
       const newCategory = response.data.data;
@@ -692,7 +692,7 @@ useEffect(() => {
 
   const handleCreateWorkItem = async (descName) => {
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/work-items", {
+      const response = await axios.post("http://localhost:5000/reckoner/work-items", {
         desc_name: descName,
       });
       const newWorkItem = response.data.data;
@@ -777,7 +777,7 @@ useEffect(() => {
   const handleCreateSubcategory = async (categoryIndex, itemIndex) => {
     if (!newSubcategory) return;
     try {
-      const response = await axios.post("http://103.118.158.127/api/reckoner/subcategories", {
+      const response = await axios.post("http://localhost:5000/reckoner/subcategories", {
         subcategory_name: newSubcategory,
       });
       const newSubcat = response.data.data;
@@ -1038,7 +1038,7 @@ useEffect(() => {
   const processSite = async (poNumber) => {
     try {
       setLoading((prev) => ({ ...prev, processing: true }));
-      await axios.get(`http://103.118.158.127/api/sheet/process/${encodeURIComponent(poNumber)}`);
+      await axios.get(`http://localhost:5000/sheet/process/${encodeURIComponent(poNumber)}`);
       return true;
     } catch (error) {
       console.error("Error processing site:", error);
@@ -1107,7 +1107,7 @@ useEffect(() => {
         }),
       };
 
-      await axios.post("http://103.118.158.127/api/reckoner/reckoner", submissionData);
+      await axios.post("http://localhost:5000/reckoner/reckoner", submissionData);
       await processSite(formData.poNumber);
 
       Swal.fire({
@@ -1126,7 +1126,7 @@ useEffect(() => {
       setOpenCategories({ 0: true });
 
       const response = await axios.get(
-        `http://103.118.158.127/api/reckoner/sites-by-company/${selectedCompanyId}`
+        `http://localhost:5000/reckoner/sites-by-company/${selectedCompanyId}`
       );
       const sitesData = response.data.data || [];
       setSites(sitesData);
@@ -1134,7 +1134,7 @@ useEffect(() => {
       const siteReckonerPromises = sitesData.map(async (site) => {
         try {
           const reckonerResponse = await axios.get(
-            `http://103.118.158.127/api/reckoner/site-reckoner/${site.site_id}`
+            `http://localhost:5000/reckoner/site-reckoner/${site.site_id}`
           );
           return { siteId: site.site_id, data: reckonerResponse.data.data || [] };
         } catch (err) {
