@@ -48,4 +48,7 @@ router.post("/add-material", materialController.addMaterial);
 router.get("/materials", materialController.getMaterials);
 router.get('/assigned-materials', materialController.getAssignedMaterials);
 
+router.get("/master-dc-no", materialController.getMasterDcNo);
+router.post("/master-dc-no", materialController.saveMasterDcNo);
+
         module.exports = router;

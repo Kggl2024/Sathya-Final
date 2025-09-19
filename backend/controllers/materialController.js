@@ -235,7 +235,8 @@ exports.fetchEmployees = async (req, res) => {
         em.permanent_address,
         em.esic_number,
         em.pf_number,
-        em.created_at
+        em.created_at,
+        em.approved_salary
       FROM employee_master em
       LEFT JOIN emp_gender eg ON em.gender_id = eg.id
       LEFT JOIN emp_department ed ON em.dept_id = ed.id
@@ -418,20 +419,172 @@ exports.assignInchargeToSite = async (req, res) => {
 
 
 
+// exports.addEmployee = async (req, res) => {
+//   try {
+//     const {
+//       emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
+//       company, dept_id, emp_type_id, designation_id, branch,
+//       mobile, company_email, current_address, permanent_address,
+//       esic_number, pf_number // Added new fields
+//     } = req.body;
+
+//     // Check for missing required fields
+//     if (
+//       !emp_id || !full_name || !gender_id || !date_of_birth || !date_of_joining ||
+//       !status_id || !company || !dept_id || !emp_type_id || !designation_id ||
+//       !branch || !mobile || !company_email || !current_address || !permanent_address
+//     ) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'All required fields (except ESIC and PF numbers) must be provided',
+//       });
+//     }
+
+//     // Validate date format (YYYY-MM-DD)
+//     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+//     if (!dateRegex.test(date_of_birth) || !dateRegex.test(date_of_joining)) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid date format: date_of_birth and date_of_joining must be in YYYY-MM-DD format',
+//       });
+//     }
+
+//     // Validate mobile (allow +91 optional, 10 digits)
+//     const mobileRegex = /^(?:\+91)?\d{10}$/;
+//     if (!mobileRegex.test(mobile)) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid mobile number: must be 10 digits, with optional +91 prefix',
+//       });
+//     }
+
+//     // Validate email
+//     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+//     if (!emailRegex.test(company_email)) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid email format',
+//       });
+//     }
+
+//     // Check for duplicates
+//     const [existingEmpId] = await db.query('SELECT emp_id FROM employee_master WHERE emp_id = ?', [emp_id]);
+//     if (existingEmpId.length > 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Employee ID already exists',
+//       });
+//     }
+
+//     const [existingEmail] = await db.query('SELECT company_email FROM employee_master WHERE company_email = ?', [company_email]);
+//     if (existingEmail.length > 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Company email already exists',
+//       });
+//     }
+
+//     // Validate foreign keys
+//     const [gender] = await db.query('SELECT id FROM emp_gender WHERE id = ?', [gender_id]);
+//     if (gender.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid gender_id: gender does not exist',
+//       });
+//     }
+
+//     const [department] = await db.query('SELECT id FROM emp_department WHERE id = ?', [dept_id]);
+//     if (department.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid dept_id: department does not exist',
+//       });
+//     }
+
+//     const [empType] = await db.query('SELECT id FROM employment_type WHERE id = ?', [emp_type_id]);
+//     if (empType.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid emp_type_id: employment type does not exist',
+//       });
+//     }
+
+//     const [designation] = await db.query('SELECT id FROM emp_designation WHERE id = ?', [designation_id]);
+//     if (designation.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid designation_id: designation does not exist',
+//       });
+//     }
+
+//     const [status] = await db.query('SELECT id FROM emp_status WHERE id = ?', [status_id]);
+//     if (status.length === 0) {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid status_id: status does not exist',
+//       });
+//     }
+
+//     // Insert employee
+//     const [result] = await db.query(
+//       `INSERT INTO employee_master (
+//         emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
+//         company, dept_id, emp_type_id, designation_id, branch,
+//         mobile, company_email, current_address, permanent_address,
+//         esic_number, pf_number
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
+//         company, dept_id, emp_type_id, designation_id, branch,
+//         mobile, company_email, current_address, permanent_address,
+//         esic_number || null, pf_number || null // Handle optional fields
+//       ]
+//     );
+
+//     res.status(201).json({
+//       status: 'success',
+//       message: 'Employee added successfully',
+//       data: { emp_id, full_name, designation_id, status_id },
+//     });
+//   } catch (error) {
+//     console.error('Error adding employee:', error.message, error.stack);
+//     if (error.code === 'ER_DUP_ENTRY') {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Employee ID or email already exists',
+//       });
+//     }
+//     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+//       return res.status(400).json({
+//         status: 'error',
+//         message: 'Invalid foreign key: one of gender_id, dept_id, emp_type_id, designation_id, or status_id does not exist',
+//       });
+//     }
+//     res.status(500).json({
+//       status: 'error',
+//       message: 'Failed to add employee due to server error',
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+
 exports.addEmployee = async (req, res) => {
   try {
     const {
       emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
       company, dept_id, emp_type_id, designation_id, branch,
       mobile, company_email, current_address, permanent_address,
-      esic_number, pf_number // Added new fields
+      esic_number, pf_number, approved_salary // Added new field
     } = req.body;
 
     // Check for missing required fields
     if (
       !emp_id || !full_name || !gender_id || !date_of_birth || !date_of_joining ||
       !status_id || !company || !dept_id || !emp_type_id || !designation_id ||
-      !branch || !mobile || !company_email || !current_address || !permanent_address
+      !branch || !mobile || !company_email || !current_address || !permanent_address ||
+      !approved_salary // Added to required check
     ) {
       return res.status(400).json({
         status: 'error',
@@ -463,6 +616,15 @@ exports.addEmployee = async (req, res) => {
       return res.status(400).json({
         status: 'error',
         message: 'Invalid email format',
+      });
+    }
+
+    // Validate approved_salary (positive number, up to 2 decimal places)
+    const salaryRegex = /^\d+(\.\d{1,2})?$/;
+    if (!salaryRegex.test(approved_salary) || parseFloat(approved_salary) <= 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid approved_salary: must be a positive number with up to 2 decimal places',
       });
     }
 
@@ -530,20 +692,20 @@ exports.addEmployee = async (req, res) => {
         emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
         company, dept_id, emp_type_id, designation_id, branch,
         mobile, company_email, current_address, permanent_address,
-        esic_number, pf_number
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        esic_number, pf_number, approved_salary
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         emp_id, full_name, gender_id, date_of_birth, date_of_joining, status_id,
         company, dept_id, emp_type_id, designation_id, branch,
         mobile, company_email, current_address, permanent_address,
-        esic_number || null, pf_number || null // Handle optional fields
+        esic_number || null, pf_number || null, parseFloat(approved_salary) // Handle optional fields and convert salary to float
       ]
     );
 
     res.status(201).json({
       status: 'success',
       message: 'Employee added successfully',
-      data: { emp_id, full_name, designation_id, status_id },
+      data: { emp_id, full_name, designation_id, status_id, approved_salary },
     });
   } catch (error) {
     console.error('Error adding employee:', error.message, error.stack);
@@ -566,6 +728,7 @@ exports.addEmployee = async (req, res) => {
     });
   }
 };
+
 
 exports.getAssignedIncharges = async (req, res) => {
   try {
@@ -1159,30 +1322,69 @@ exports.fetchWorkDescriptions = async (req, res) => {
   }
 };
 
-
 exports.getNextDcNo = async function (req, res) {
   try {
-    const [rows] = await db.query('SELECT MAX(dc_no) AS max_dc_no FROM material_dispatch');
-    const maxDcNo = rows[0].max_dc_no || 0;
+    // Log incoming request details for debugging (optional, remove in production)
+    console.log('Request query:', req.query);
+
+    // Get site_id from query parameters
+    const site_id = req.query.site_id;
+
+    // Validate site_id
+    if (!site_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'site_id is required and must be a valid number in query parameters'
+      });
+    }
+
+    console.log('Using site_id:', site_id);
+
+    // Step 1: Verify if the site has any assignments (optional check for early exit)
+    const [assignCheck] = await db.query(
+      'SELECT COUNT(*) as count FROM material_assign WHERE site_id = ?',
+      [site_id]
+    );
+
+    if (assignCheck[0].count === 0) {
+      // If no assignments for site, start DC No from 1
+      return res.status(200).json({
+        status: 'success',
+        message: 'No prior assignments found; starting DC No from 1',
+        data: { next_dc_no: 1, site_id: parseInt(site_id) }
+      });
+    }
+
+    // Step 2: Fetch the maximum dc_no for all dispatches linked to this site
+    // Using JOIN to link material_dispatch to material_assign via site_id
+    const [dispatchRows] = await db.query(
+      `SELECT MAX(md.dc_no) AS max_dc_no 
+       FROM material_dispatch md 
+       INNER JOIN material_assign ma ON md.material_assign_id = ma.id 
+       WHERE ma.site_id = ?`,
+      [site_id]
+    );
+
+    // Handle null max_dc_no (no prior dispatches for site)
+    const maxDcNo = dispatchRows[0]?.max_dc_no || 0;
     const nextDcNo = maxDcNo + 1;
+
+    console.log('Site-wise max_dc_no:', maxDcNo, 'Next DC No:', nextDcNo);
 
     res.status(200).json({
       status: 'success',
-      message: 'Next DC No fetched successfully',
-      data: { next_dc_no: nextDcNo }
+      message: 'Next site-wise DC No fetched successfully',
+      data: { next_dc_no: nextDcNo, site_id: parseInt(site_id) }
     });
   } catch (error) {
     console.error('Error fetching next DC No:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to fetch next DC No',
-      error: error.message
+      message: 'Failed to fetch next DC No due to server error',
+      error: error.message // Remove in production for security
     });
   }
 };
-
-
-
 
 exports.addMaterialDispatch = async (req, res) => {
   const connection = await db.getConnection();
@@ -1567,7 +1769,6 @@ exports.fetchMaterialAssignmentsWithDispatch = async (req, res) => {
   }
 };
 
-
 exports.fetchMaterialDispatchDetails = async (req, res) => {
   try {
     const { pd_id, site_id, desc_id } = req.query;
@@ -1577,9 +1778,10 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
         md.material_assign_id,
         md.dc_no,
         md.dispatch_date,
+        md.dispatch_qty,
         md.order_no,
-        c.vendor_code, -- Fetch vendor_code from company table
-        c.gst_number, -- Fetch gst_number from company table
+        c.vendor_code,
+        c.gst_number,
         md.comp_a_qty,
         md.comp_b_qty,
         md.comp_c_qty,
@@ -1591,40 +1793,50 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
         ma.comp_ratio_a,
         ma.comp_ratio_b,
         ma.comp_ratio_c,
-        ma.desc_id, -- Fetch desc_id from material_assign
-        wd.desc_name, -- Fetch desc_name from work_descriptions
-        mm.item_id, -- Fetch item_id from material_master
+        ma.desc_id,
+        wd.desc_name,
+        mm.item_id,
         pd.project_name,
         sd.site_name,
         sd.po_number,
         mm.item_name,
         um.uom_name,
-        JSON_OBJECT(
-          'id', tm.id,
-          'destination', tm.destination,
-          'booking_expense', tm.booking_expense,
-          'travel_expense', tm.travel_expense,
-          'dispatch_id', tm.dispatch_id,
-          'created_at', tm.created_at,
-          'vehicle', JSON_OBJECT(
-            'id', vm.id,
-            'vehicle_name', vm.vehicle_name,
-            'vehicle_model', vm.vehicle_model,
-            'vehicle_number', vm.vehicle_number
-          ),
-          'driver', JSON_OBJECT(
-            'id', dm.id,
-            'driver_name', dm.driver_name,
-            'driver_mobile', dm.driver_mobile,
-            'driver_address', dm.driver_address
-          ),
-          'provider', JSON_OBJECT(
-            'id', pm.id,
-            'provider_name', pm.provider_name,
-            'address', pm.address,
-            'mobile', pm.mobile,
-            'transport_type_id', pm.transport_type_id
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tm.id,
+              'destination', COALESCE(tm.destination, ''),
+              'booking_expense', COALESCE(tm.booking_expense, 0),
+              'travel_expense', COALESCE(tm.travel_expense, 0),
+              'dispatch_id', tm.dispatch_id,
+              'created_at', tm.created_at,
+              'vehicle', JSON_OBJECT(
+                'id', COALESCE(vm.id, 0),
+                'vehicle_name', COALESCE(vm.vehicle_name, ''),
+                'vehicle_model', COALESCE(vm.vehicle_model, ''),
+                'vehicle_number', COALESCE(vm.vehicle_number, '')
+              ),
+              'driver', JSON_OBJECT(
+                'id', COALESCE(dm.id, 0),
+                'driver_name', COALESCE(dm.driver_name, ''),
+                'driver_mobile', COALESCE(dm.driver_mobile, ''),
+                'driver_address', COALESCE(dm.driver_address, '')
+              ),
+              'provider', JSON_OBJECT(
+                'id', COALESCE(pm.id, 0),
+                'provider_name', COALESCE(pm.provider_name, ''),
+                'address', COALESCE(pm.address, ''),
+                'mobile', COALESCE(pm.mobile, ''),
+                'transport_type_id', COALESCE(pm.transport_type_id, 0)
+              )
+            )
           )
+          FROM transport_master tm
+          LEFT JOIN vehicle_master vm ON tm.vehicle_id = vm.id
+          LEFT JOIN driver_master dm ON tm.driver_id = dm.id
+          LEFT JOIN provider_master pm ON tm.provider_id = pm.id
+          WHERE tm.dispatch_id = md.id),
+          JSON_ARRAY()
         ) AS transport_details
       FROM material_dispatch md
       JOIN material_assign ma ON md.material_assign_id = ma.id
@@ -1633,10 +1845,6 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
       JOIN material_master mm ON ma.item_id = mm.item_id
       JOIN uom_master um ON ma.uom_id = um.uom_id
       LEFT JOIN work_descriptions wd ON ma.desc_id = wd.desc_id
-      LEFT JOIN transport_master tm ON md.id = tm.dispatch_id
-      LEFT JOIN vehicle_master vm ON tm.vehicle_id = vm.id
-      LEFT JOIN driver_master dm ON tm.driver_id = dm.id
-      LEFT JOIN provider_master pm ON tm.provider_id = pm.id
       LEFT JOIN company c ON pd.company_id = c.company_id
     `;
     const queryParams = [];
@@ -1666,15 +1874,15 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
 
     const [rows] = await db.query(query, queryParams);
 
-    // Add order_date to each row
+    // Format data without parsing transport_details
     const formattedData = rows.map(row => ({
       ...row,
-      order_date: order_date ? order_date.toISOString() : 'N/A',
+      order_date: order_date ? order_date.toISOString() : null,
+      transport_details: row.transport_details ? row.transport_details : [],
       vendor_code: row.vendor_code || 'N/A',
       gst_number: row.gst_number || 'N/A',
-      desc_id: row.desc_id || null,
       desc_name: row.desc_name || 'N/A',
-      item_id: row.item_id || 'N/A'
+      item_id: row.item_id || 'N/A',
     }));
 
     res.status(200).json({
@@ -1691,8 +1899,7 @@ exports.fetchMaterialDispatchDetails = async (req, res) => {
       sqlMessage: error.sqlMessage || 'No SQL message available',
     });
   }
-};  
-
+};
 exports.getTransportTypes = async function(req, res) {
   try {
     const [rows] = await db.query("SELECT id, type FROM transport_type");
@@ -1911,3 +2118,63 @@ exports.getAssignedMaterials = async (req, res) => {
 };
 
 
+
+
+
+
+
+
+
+exports.getMasterDcNo = async (req, res) => {
+  try {
+    const { company_id } = req.query;
+    if (!company_id) {
+      return res.status(400).json({ status: "error", message: "Company ID is required" });
+    }
+
+    const [rows] = await db.query(
+      "SELECT dc_no FROM master_dc_no WHERE company_id = ?",
+      [company_id]
+    );
+
+    if (rows.length > 0) {
+      return res.status(200).json({ status: "success", data: { dc_no: rows[0].dc_no } });
+    } else {
+      return res.status(200).json({ status: "success", data: null });
+    }
+  } catch (error) {
+    console.error("Error fetching master DC No:", error);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+};
+
+exports.saveMasterDcNo = async (req, res) => {
+  try {
+    const { company_id, dc_no } = req.body;
+    if (!company_id || !dc_no) {
+      return res.status(400).json({ status: "error", message: "Company ID and Master DC No are required" });
+    }
+
+    const [existing] = await db.query(
+      "SELECT dc_no FROM master_dc_no WHERE company_id = ?",
+      [company_id]
+    );
+
+    if (existing.length > 0) {
+      await db.query(
+        "UPDATE master_dc_no SET dc_no = ? WHERE company_id = ?",
+        [dc_no, company_id]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO master_dc_no (company_id, dc_no) VALUES (?, ?)",
+        [company_id, dc_no]
+      );
+    }
+
+    return res.status(200).json({ status: "success", message: "Master DC No saved successfully" });
+  } catch (error) {
+    console.error("Error saving master DC No:", error);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+};
