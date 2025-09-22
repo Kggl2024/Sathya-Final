@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Loader2, X, Save, UserPlus, User, Building, Calendar, Mail, Phone, MapPin, Users, Briefcase, FileText } from "lucide-react";
+import { Loader2, X, Save, UserPlus, User, Building, Calendar, Mail, Phone, MapPin, Users, Briefcase, FileText, DollarSign } from "lucide-react";
 import Swal from "sweetalert2";
 
 const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase = true }) => {
@@ -22,6 +22,7 @@ const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase
     permanent_address: "",
     esic_number: "", // Added esic_number
     pf_number: "", // Added pf_number
+    approved_salary: "", // Added approved_salary
   });
 
   const [errors, setErrors] = useState({});
@@ -123,7 +124,8 @@ const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase
     else if (!emailRegex.test(formData.company_email)) newErrors.company_email = "Invalid email format";
     if (!formData.current_address) newErrors.current_address = "Current Address is required";
     if (!formData.permanent_address) newErrors.permanent_address = "Permanent Address is required";
-   
+    if (!formData.approved_salary) newErrors.approved_salary = "Approved Salary is required";
+    else if (isNaN(formData.approved_salary) || parseFloat(formData.approved_salary) <= 0) newErrors.approved_salary = "Approved Salary must be a positive number";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -189,6 +191,7 @@ const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase
         permanent_address: "",
         esic_number: "", // Reset esic_number
         pf_number: "", // Reset pf_number
+        approved_salary: "", // Reset approved_salary
       });
     } catch (error) {
       console.error("Error adding employee:", error.response?.data || error);
@@ -270,6 +273,13 @@ const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase
               { label: "Mobile", name: "mobile", type: "text", placeholder: "e.g., +919876543210", icon: Phone },
               { label: "Company Email", name: "company_email", type: "email", placeholder: "e.g., name@company.com", icon: Mail },
               {
+                label: "Approved Salary",
+                name: "approved_salary",
+                type: "number",
+                placeholder: "e.g., 25000",
+                icon: DollarSign,
+              },
+              {
                 label: "ESIC Number",
                 name: "esic_number",
                 type: "text",
@@ -346,6 +356,8 @@ const AddEmployee = ({ isOpen, onClose, onSave, isAddingEmployee, saveToDatabase
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     disabled={isAddingEmployee}
                     required={field.name !== "esic_number" && field.name !== "pf_number"} // Optional fields
+                    step={field.name === "approved_salary" ? "0.01" : undefined}
+                    min={field.name === "approved_salary" ? "0" : undefined}
                     autoComplete="off"
                   />
                 )}

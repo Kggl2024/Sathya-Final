@@ -4,8 +4,7 @@ import Swal from "sweetalert2";
 import { Loader2, Filter, PlusCircle, X, ChevronDown } from "lucide-react";
 import AddEmployee from "../../components/AddEmployee";
 import AddTemporaryEmployee from "../../components/AddTemporaryEmployee";
-// import AddEmployee from "./AddEmployee";
-// import AddTemporaryEmployee from "./AddTemporaryEmployee";
+
 
 const EmployeeDetails = () => {
   const [employees, setEmployees] = useState([]);
@@ -412,6 +411,9 @@ const EmployeeDetails = () => {
                           </p>
                           <p className="text-xs sm:text-sm text-gray-600">
                             <span className="font-semibold">Status:</span> {formatValue(employee.status)}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            <span className="font-semibold">Approved Salary:</span> {formatValue(employee.approved_salary)}
                           </p>
                         </div>
                       </td>

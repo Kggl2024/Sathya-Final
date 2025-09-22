@@ -1,24 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+// src/pages/contract/POMasterCreation.jsx
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { 
-  Plus, 
-  ChevronDown, 
-  ChevronUp, 
-  Save, 
-  Eye, 
-  Edit,
-  Building2,
-  MapPin,
-  Calendar,
-  User,
-  Settings,
-  FileText,
-  Trash2,
-  Check,
-  X
-} from "lucide-react";
 
+// Component imports
+import HeaderSection from "../../components/POComponents/HeaderSection";
+import SitesList from "../../components/POComponents/SitesList";
+import ReckonerForm from "../../components/POComponents/ReckonerForm";
+import LoadingAndEmptyStates from "../../components/POComponents/LoadingAndEmptyStates";
+
+// Utility functions
 const getRandomColor = (index) => {
   const colors = [
     "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
@@ -57,203 +48,6 @@ const initialFormData = {
     },
   ],
 };
-
-const SearchableDropdown = ({ options, value, onChange, placeholder, disabled, isLoading, onCreate }) => {
-  const [searchTerm, setSearchTerm] = useState(value || "");
-  const [isOpen, setIsOpen] = useState(false);
-  const [filteredOptions, setFilteredOptions] = useState(options);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    setSearchTerm(value || "");
-    setFilteredOptions(
-      options.filter((option) =>
-        option.name.toLowerCase().includes((value || "").toLowerCase())
-      )
-    );
-  }, [value, options]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSearch = (e) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    setFilteredOptions(
-      options.filter((option) =>
-        option.name.toLowerCase().includes(term.toLowerCase())
-      )
-    );
-    setIsOpen(true);
-  };
-
-  const handleSelect = (option) => {
-    onChange(option.name, option.id);
-    setSearchTerm(option.name);
-    setIsOpen(false);
-  };
-
-  const handleCreate = async () => {
-    if (onCreate && searchTerm && !filteredOptions.some(opt => opt.name.toLowerCase() === searchTerm.toLowerCase())) {
-      try {
-        await onCreate(searchTerm);
-        setSearchTerm("");
-        setIsOpen(false);
-      } catch (error) {
-        console.error("Error creating new option:", error);
-      }
-    }
-  };
-
-  return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={handleSearch}
-        onFocus={() => setIsOpen(true)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white hover:bg-slate-50 transition-all duration-200"
-        disabled={disabled || isLoading}
-      />
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => (
-              <div
-                key={option.id}
-                className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
-                onClick={() => handleSelect(option)}
-              >
-                {option.name}
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-3 text-sm text-slate-500">
-              {onCreate && searchTerm ? (
-                <button
-                  onClick={handleCreate}
-                  className="w-full text-left hover:text-blue-600 transition-colors duration-200"
-                >
-                  + Create "{searchTerm}"
-                </button>
-              ) : (
-                "No options found"
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const SearchableClientDropdown = ({
-  options,
-  value,
-  onChange,
-  placeholder,
-  disabled,
-  isLoading,
-}) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const [filteredOptions, setFilteredOptions] = useState(options);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    setFilteredOptions(
-      options.filter((option) =>
-        option.company_name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, options]);
-
-  // Reset search term when value changes externally
-  useEffect(() => {
-    if (!value || !searchTerm) {
-      setSearchTerm("");
-    }
-  }, [value]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        // Reset search term when closing if no value is selected
-        if (!value) {
-          setSearchTerm("");
-        }
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [value]);
-
-  const handleSearch = (e) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    setIsOpen(true);
-  };
-
-  const handleSelect = (option) => {
-    onChange(option.company_id);
-    setSearchTerm(option.company_name); // Set the display name
-    setIsOpen(false);
-  };
-
-  const getCurrentDisplayValue = () => {
-    if (searchTerm) {
-      return searchTerm;
-    }
-    if (value) {
-      const selectedOption = options.find((opt) => opt.company_id === value);
-      return selectedOption ? selectedOption.company_name : "";
-    }
-    return "";
-  };
-
-  return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <input
-        type="text"
-        value={getCurrentDisplayValue()}
-        onChange={handleSearch}
-        onFocus={() => setIsOpen(true)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white hover:bg-slate-50 transition-all duration-200"
-        disabled={disabled || isLoading}
-      />
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => (
-              <div
-                key={option.company_id}
-                className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
-                onClick={() => handleSelect(option)}
-              >
-                {option.company_name}
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-3 text-sm text-slate-500">
-              No clients found
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 
 const POMasterCreation = ({
   onShowCompanyModal,
@@ -302,21 +96,20 @@ const POMasterCreation = ({
     type_name: "",
   });
 
-useEffect(() => {
-  setSelectedCompanyId(selectedCompany || "");
-  
-  // Reset form and related states when selectedCompany prop changes
-  if (selectedCompany !== selectedCompanyId) {
-    setFormData({ ...initialFormData });
-    setSites([]);
-    setSiteReckonerData({});
-    setExpandedSite(null);
-    setEditingSiteId(null);
-    setCreatingReckonerSiteId(null);
-    setOpenCategories({ 0: true });
-  }
-}, [selectedCompany]);
-
+  useEffect(() => {
+    setSelectedCompanyId(selectedCompany || "");
+    
+    // Reset form and related states when selectedCompany prop changes
+    if (selectedCompany !== selectedCompanyId) {
+      setFormData({ ...initialFormData });
+      setSites([]);
+      setSiteReckonerData({});
+      setExpandedSite(null);
+      setEditingSiteId(null);
+      setCreatingReckonerSiteId(null);
+      setOpenCategories({ 0: true });
+    }
+  }, [selectedCompany]);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -551,29 +344,29 @@ useEffect(() => {
     }
   };
 
- const handleCompanyChange = (value) => {
-  // Reset all related states when company changes
-  setSelectedCompanyId(value);
-  setFormData({ ...initialFormData });
-  setSites([]);
-  setSiteReckonerData({});
-  setExpandedSite(null);
-  setEditingSiteId(null);
-  setCreatingReckonerSiteId(null);
-  setOpenCategories({ 0: true });
+  const handleCompanyChange = (value) => {
+    // Reset all related states when company changes
+    setSelectedCompanyId(value);
+    setFormData({ ...initialFormData });
+    setSites([]);
+    setSiteReckonerData({});
+    setExpandedSite(null);
+    setEditingSiteId(null);
+    setCreatingReckonerSiteId(null);
+    setOpenCategories({ 0: true });
 
-  // Save to localStorage
-  if (value) {
-    localStorage.setItem("selectedCompanyId", value);
-  } else {
-    localStorage.removeItem("selectedCompanyId");
-  }
+    // Save to localStorage
+    if (value) {
+      localStorage.setItem("selectedCompanyId", value);
+    } else {
+      localStorage.removeItem("selectedCompanyId");
+    }
 
-  // Call parent callback if provided
-  if (onCompanySelect) {
-    onCompanySelect(value);
-  }
-};
+    // Call parent callback if provided
+    if (onCompanySelect) {
+      onCompanySelect(value);
+    }
+  };
 
   const handleToggleSite = (siteId) => {
     const isExpanding = expandedSite !== siteId;
@@ -1170,784 +963,72 @@ useEffect(() => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <Settings className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                Master PO Creation
-              </h1>
-              <p className="text-slate-600 text-sm mt-1">
-                Create and manage project work orders
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <label className="text-sm font-semibold text-slate-700 mb-2 block flex items-center gap-2">
-                <Building2 size={16} />
-                Select Client
-              </label>
-              <SearchableClientDropdown
-                options={companies}
-                value={selectedCompanyId}
-                onChange={handleCompanyChange}
-                placeholder="Search client"
-                disabled={loading.companies}
-                isLoading={loading.companies}
-              />
-            </div>
-
-            
-{selectedCompanyId && (
-            <div className="lg:w-auto flex items-end">
-
-              <button
-                onClick={() => handleCompanyChange("")}
-                className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-xl transition-colors duration-200 flex items-center gap-2"
-              >
-                <X size={16} />
-                Clear Selection
-              </button>
-            </div>
-            )} 
-          
-         
-            <div className="lg:w-auto flex items-end">
-              <button
-                onClick={onShowProjectModal}
-                className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
-                disabled={!selectedCompanyId}
-              >
-                <Plus size={18} className="group-hover:rotate-90 transition-transform duration-200" />
-                Create Site
-              </button>
-            </div>
-          </div>
-        </div>
+        <HeaderSection
+          companies={companies}
+          selectedCompanyId={selectedCompanyId}
+          handleCompanyChange={handleCompanyChange}
+          onShowProjectModal={onShowProjectModal}
+          loading={loading}
+        />
 
         {/* Sites Section */}
-        {selectedCompanyId && sites.length > 0 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800">Sites for Selected Client</h2>
-              <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                {sites.length} sites
-              </div>
-            </div>
+        <SitesList
+          selectedCompanyId={selectedCompanyId}
+          sites={sites}
+          expandedSite={expandedSite}
+          handleToggleSite={handleToggleSite}
+          editingSiteId={editingSiteId}
+          editSiteData={editSiteData}
+          handleEditSiteChange={handleEditSiteChange}
+          handleDropdownChange={handleDropdownChange}
+          inchargeTypes={inchargeTypes}
+          locations={locations}
+          reckonerTypes={reckonerTypes}
+          loading={loading}
+          handleUpdateSite={handleUpdateSite}
+          setEditingSiteId={setEditingSiteId}
+          handleEditSite={handleEditSite}
+          siteReckonerData={siteReckonerData}
+          creatingReckonerSiteId={creatingReckonerSiteId}
+          handleCreateReckoner={handleCreateReckoner}
+        >
+          {creatingReckonerSiteId && (
+            <ReckonerForm
+              formData={formData}
+              handleSubmit={handleSubmit}
+              categories={categories}
+              handleCategoryChange={handleCategoryChange}
+              handleCreateCategory={handleCreateCategory}
+              removeCategory={removeCategory}
+              addCategory={addCategory}
+              toggleCategory={toggleCategory}
+              openCategories={openCategories}
+              workItems={workItems}
+              handleItemChange={handleItemChange}
+              handleItemDescriptionChange={handleItemDescriptionChange}
+              handleCreateWorkItem={handleCreateWorkItem}
+              removeItemRow={removeItemRow}
+              addItemRow={addItemRow}
+              subcategories={subcategories}
+              handleSubcategorySelection={handleSubcategorySelection}
+              newSubcategory={newSubcategory}
+              setNewSubcategory={setNewSubcategory}
+              handleCreateSubcategory={handleCreateSubcategory}
+              handleSubcategoryRateChange={handleSubcategoryRateChange}
+              loading={loading}
+              getRandomColor={getRandomColor}
+              isSubmitDisabled={isSubmitDisabled}
+              setCreatingReckonerSiteId={setCreatingReckonerSiteId}
+            />
+          )}
+        </SitesList>
 
-            <div className="space-y-4">
-              {sites.map((site, index) => (
-                <div
-                  key={site.site_id}
-                  className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-                >
-                  <div
-                    className="flex justify-between items-center p-6 bg-gradient-to-r from-slate-50 to-slate-100 cursor-pointer hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-slate-200"
-                    onClick={() => handleToggleSite(site.site_id)}
-                  >
-                    <div className="flex items-center space-x-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-900 text-lg">{site.site_name}</span>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className="text-slate-600 text-sm flex items-center gap-1">
-                              <FileText size={14} />
-                              PO: {site.po_number}
-                            </span>
-                            <span className="text-slate-800 text-sm flex items-center gap-1">
-                              <Building2 size={14} />
-                              Cost Center: {site.project_name}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors duration-200">
-                      {expandedSite === site.site_id ? (
-                        <ChevronUp className="w-6 h-6 text-slate-600" />
-                      ) : (
-                        <ChevronDown className="w-6 h-6 text-slate-600" />
-                      )}
-                    </button>
-                  </div>
-
-                  {expandedSite === site.site_id && (
-                    <div className="p-6 space-y-6">
-                      {/* Site Details Section */}
-                      <div className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200 shadow-inner">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <Building2 className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-800">Site Details</h3>
-                          </div>
-                          {editingSiteId !== site.site_id && (
-                            <button
-                              onClick={() => handleEditSite(site.site_id)}
-                              className="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                            >
-                              <Edit className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                              Edit Site Details
-                            </button>
-                          )}
-                        </div>
-
-                        {editingSiteId === site.site_id ? (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Site Name
-                                </label>
-                                <input
-                                  type="text"
-                                  name="site_name"
-                                  value={editSiteData.site_name}
-                                  onChange={handleEditSiteChange}
-                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  PO Number
-                                </label>
-                                <input
-                                  type="text"
-                                  name="po_number"
-                                  value={editSiteData.po_number}
-                                  onChange={handleEditSiteChange}
-                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Start Date
-                                </label>
-                                <input
-                                  type="date"
-                                  name="start_date"
-                                  value={formatDateForInput(editSiteData.start_date)}
-                                  onChange={handleEditSiteChange}
-                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  End Date
-                                </label>
-                                <input
-                                  type="date"
-                                  name="end_date"
-                                  value={formatDateForInput(editSiteData.end_date)}
-                                  onChange={handleEditSiteChange}
-                                  className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-3 border text-sm bg-white"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Incharge Type
-                                </label>
-                                <SearchableDropdown
-                                  options={inchargeTypes}
-                                  value={editSiteData.incharge_type}
-                                  onChange={(value, id) =>
-                                    handleDropdownChange("incharge_type", "incharge_id", value, id)
-                                  }
-                                  placeholder="Select incharge type"
-                                  disabled={loading.inchargeTypes}
-                                  isLoading={loading.inchargeTypes}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Location
-                                </label>
-                                <SearchableDropdown
-                                  options={locations}
-                                  value={editSiteData.location_name}
-                                  onChange={(value, id) =>
-                                    handleDropdownChange("location_name", "location_id", value, id)
-                                  }
-                                  placeholder="Select location"
-                                  disabled={loading.locations}
-                                  isLoading={loading.locations}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  PO Type
-                                </label>
-                                <SearchableDropdown
-                                  options={reckonerTypes}
-                                  value={editSiteData.type_name}
-                                  onChange={(value, id) =>
-                                    handleDropdownChange("type_name", "reckoner_type_id", value, id)
-                                  }
-                                  placeholder="Select PO type"
-                                  disabled={loading.reckonerTypes}
-                                  isLoading={loading.reckonerTypes}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
-                              <button
-                                onClick={() => setEditingSiteId(null)}
-                                className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-xl transition-colors duration-200"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={() => handleUpdateSite(site.site_id)}
-                                className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium rounded-xl transition-colors duration-200 shadow-lg"
-                                disabled={loading.submitting}
-                              >
-                                {loading.submitting ? "Updating..." : "Update Site"}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                              { label: "Site Name", value: site.site_name, icon: Building2 },
-                              { label: "PO Number", value: site.po_number, icon: FileText },
-                              { label: "Start Date", value: site.start_date ? new Date(site.start_date).toLocaleDateString() : "N/A", icon: Calendar },
-                              { label: "End Date", value: site.end_date ? new Date(site.end_date).toLocaleDateString() : "N/A", icon: Calendar },
-                              { label: "Incharge Type", value: site.incharge_type || "N/A", icon: User },
-                              { label: "Location", value: site.location_name || "N/A", icon: MapPin },
-                              { label: "PO Type", value: site.type_name || "N/A", icon: Settings },
-                            ].map((item, idx) => (
-                              <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-200">
-                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wide font-medium mb-2">
-                                  <item.icon size={12} />
-                                  {item.label}
-                                </div>
-                                <div className="text-slate-800 font-medium text-sm">
-                                  {item.value}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Work Descriptions Section */}
-                      <div className="bg-gradient-to-r from-slate-50 to-purple-50 p-6 rounded-xl border border-slate-200 shadow-inner">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <FileText className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-slate-800">Work Descriptions</h3>
-                        </div>
-
-                        {siteReckonerData[site.site_id]?.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
-                                <tr>
-                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                    Category
-                                  </th>
-                                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                    Description
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {siteReckonerData[site.site_id].map((item, index) => (
-                                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                                      {item.category_name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                                      {item.desc_name}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : creatingReckonerSiteId === site.site_id ? (
-                          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                            <div className="flex items-center gap-3 mb-6">
-                              <div className="p-2 bg-indigo-100 rounded-lg">
-                                <Plus className="w-5 h-5 text-indigo-600" />
-                              </div>
-                              <h4 className="text-lg font-semibold text-slate-700">
-                                Create Reckoner for {site.site_name}
-                              </h4>
-                            </div>
-                            
-                            <form onSubmit={handleSubmit} className="space-y-8">
-                              <input type="hidden" name="poNumber" value={formData.poNumber} />
-                              <input type="hidden" name="siteId" value={formData.siteId} />
-
-                              <div className="space-y-6">
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                      <FileText className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                    <h2 className="text-xl font-semibold text-slate-800">Categories</h2>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={addCategory}
-                                    className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                                  >
-                                    <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
-                                    Add Category
-                                  </button>
-                                </div>
-
-                                {formData.categories.map((category, categoryIndex) => (
-                                  <div
-                                    key={categoryIndex}
-                                    className={`border-2 rounded-2xl p-6 space-y-6 ${getRandomColor(categoryIndex)} shadow-lg hover:shadow-xl transition-all duration-300`}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                                        <div>
-                                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Category Name
-                                          </label>
-                                          <SearchableDropdown
-                                            options={categories.map((cat) => ({
-                                              id: cat.category_id,
-                                              name: cat.category_name,
-                                            }))}
-                                            value={category.categoryName}
-                                            onChange={(value, id) => handleCategoryChange(categoryIndex, value)}
-                                            onCreate={async (name) => {
-                                              const newCategory = await handleCreateCategory(name);
-                                              if (newCategory) {
-                                                handleCategoryChange(categoryIndex, newCategory.category_name);
-                                              }
-                                            }}
-                                            placeholder="Search or add category"
-                                            disabled={loading.categories}
-                                            isLoading={loading.categories}
-                                          />
-                                        </div>
-                                        <div className="flex items-end justify-end">
-                                          {formData.categories.length > 1 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => removeCategory(categoryIndex)}
-                                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                            >
-                                              <Trash2 className="w-4 h-4 mr-2" />
-                                              Remove Category
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleCategory(categoryIndex)}
-                                        className="ml-4 p-3 rounded-xl hover:bg-white/50 transition-colors duration-200 shadow-md"
-                                        aria-label={
-                                          openCategories[categoryIndex]
-                                            ? "Collapse Category"
-                                            : "Expand Category"
-                                        }
-                                      >
-                                        {openCategories[categoryIndex] ? (
-                                          <ChevronUp className="w-5 h-5 text-slate-600" />
-                                        ) : (
-                                          <ChevronDown className="w-5 h-5 text-slate-600" />
-                                        )}
-                                      </button>
-                                    </div>
-
-                                    {openCategories[categoryIndex] && category.categoryName && (
-                                      <div className="space-y-6 mt-6 transition-all duration-300">
-                                        <div className="flex items-center gap-3">
-                                          <div className="p-2 bg-indigo-100 rounded-lg">
-                                            <Settings className="w-4 h-4 text-indigo-600" />
-                                          </div>
-                                          <h3 className="text-lg font-semibold text-slate-700">Items</h3>
-                                        </div>
-                                        
-                                        <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
-                                          <table className="min-w-full divide-y divide-slate-200">
-                                            <thead className={`${getRandomColor(categoryIndex + 1)} border-b border-slate-200`}>
-                                              <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Item No
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Description
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Qty
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  UOM
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Rate
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Value
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                  Actions
-                                                </th>
-                                              </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-slate-100">
-                                              {category.items.map((item, itemIndex) => (
-                                                <React.Fragment key={itemIndex}>
-                                                  <tr className={itemIndex % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <input
-                                                        type="text"
-                                                        name="itemNo"
-                                                        value={item.itemNo}
-                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
-                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                        required
-                                                        placeholder="Item No"
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 w-[250px] whitespace-nowrap">
-                                                      <SearchableDropdown
-                                                        options={workItems.map((item) => ({
-                                                          id: item.desc_id,
-                                                          name: item.desc_name,
-                                                        }))}
-                                                        value={item.descName}
-                                                        onChange={(value) => handleItemDescriptionChange(categoryIndex, itemIndex, value)}
-                                                        onCreate={async (name) => {
-                                                          const newWorkItem = await handleCreateWorkItem(name);
-                                                          if (newWorkItem) {
-                                                            handleItemDescriptionChange(categoryIndex, itemIndex, newWorkItem.desc_name);
-                                                          }
-                                                        }}
-                                                        placeholder="Search or add description"
-                                                        disabled={loading.workItems}
-                                                        isLoading={loading.workItems}
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <input
-                                                        type="number"
-                                                        name="poQuantity"
-                                                        value={item.poQuantity}
-                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
-                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                        required
-                                                        min="0"
-                                                        step="0.01"
-                                                        placeholder="Qty"
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <input
-                                                        type="text"
-                                                        name="unitOfMeasure"
-                                                        value={item.unitOfMeasure}
-                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
-                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                        required
-                                                        placeholder="UOM"
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <input
-                                                        type="number"
-                                                        name="rate"
-                                                        value={item.rate}
-                                                        onChange={(e) => handleItemChange(categoryIndex, itemIndex, e)}
-                                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                        required
-                                                        min="0"
-                                                        step="1"
-                                                        placeholder="Rate"
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <input
-                                                        type="text"
-                                                        name="value"
-                                                        value={item.value}
-                                                        readOnly
-                                                        className="block w-full rounded-lg border-slate-300 shadow-sm p-2 border bg-slate-100 text-sm"
-                                                      />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => removeItemRow(categoryIndex, itemIndex)}
-                                                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-200 disabled:opacity-50"
-                                                        disabled={category.items.length <= 1}
-                                                      >
-                                                        <Trash2 className="w-4 h-4 mr-1" />
-                                                        Remove
-                                                      </button>
-                                                    </td>
-                                                  </tr>
-                                                  <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
-                                                    <td colSpan="7" className="px-4 py-4">
-                                                      <div className="mb-4">
-                                                        <div className="flex items-center justify-between mb-3">
-                                                          <label className="block text-sm font-semibold text-slate-700">
-                                                            Select Subcategories
-                                                          </label>
-                                                          <div className="flex items-center gap-2">
-                                                            <input
-                                                              type="text"
-                                                              value={newSubcategory}
-                                                              onChange={(e) => setNewSubcategory(e.target.value)}
-                                                              placeholder="Add subcategory"
-                                                              className="rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                            />
-                                                            {newSubcategory && (
-                                                              <button
-                                                                type="button"
-                                                                onClick={() => handleCreateSubcategory(categoryIndex, itemIndex)}
-                                                                className="inline-flex items-center p-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg"
-                                                              >
-                                                                <Save className="w-4 h-4" />
-                                                              </button>
-                                                            )}
-                                                          </div>
-                                                        </div>
-                                                        <div className="max-h-32 overflow-y-auto border border-slate-300 rounded-xl p-3 bg-white shadow-inner">
-                                                          {subcategories
-                                                            .reduce((acc, subcat, index) => {
-                                                              const chunkIndex = Math.floor(index / 7);
-                                                              if (!acc[chunkIndex]) {
-                                                                acc[chunkIndex] = [];
-                                                              }
-                                                              acc[chunkIndex].push(subcat);
-                                                              return acc;
-                                                            }, [])
-                                                            .map((chunk, chunkIndex) => (
-                                                              <div
-                                                                key={`chunk-${chunkIndex}`}
-                                                                className="flex flex-wrap mb-2"
-                                                              >
-                                                                {chunk.map((subcat) => (
-                                                                  <div
-                                                                    key={subcat.subcategory_id}
-                                                                    className="flex items-center mb-2 w-1/4 pr-4"
-                                                                  >
-                                                                    <input
-                                                                      type="checkbox"
-                                                                      id={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
-                                                                      checked={item.subcategories.some(
-                                                                        (sc) => sc.subcategoryId === subcat.subcategory_id
-                                                                      )}
-                                                                      onChange={(e) =>
-                                                                        handleSubcategorySelection(
-                                                                          categoryIndex,
-                                                                          itemIndex,
-                                                                          subcat.subcategory_id,
-                                                                          e.target.checked
-                                                                        )
-                                                                      }
-                                                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
-                                                                      disabled={loading.subcategories || !item.descName}
-                                                                    />
-                                                                    <label
-                                                                      htmlFor={`subcat-${categoryIndex}-${itemIndex}-${subcat.subcategory_id}`}
-                                                                      className="ml-2 text-sm text-slate-700 truncate"
-                                                                    >
-                                                                      {subcat.subcategory_name}
-                                                                    </label>
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                        </div>
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                  {item.subcategories.length > 0 && (
-                                                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                                                      <td colSpan="7" className="px-4 py-4">
-                                                        <div className="mb-2">
-                                                          <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                                            <Settings className="w-4 h-4" />
-                                                            Subcategory Details
-                                                          </h4>
-                                                          <table className="min-w-full divide-y divide-slate-200 bg-white rounded-lg shadow-sm border border-slate-200">
-                                                            <thead className="bg-gradient-to-r from-slate-200 to-slate-100">
-                                                              <tr>
-                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                                  Subcategory
-                                                                </th>
-                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                                  Qty
-                                                                </th>
-                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                                  Rate
-                                                                </th>
-                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                                                  Value
-                                                                </th>
-                                                              </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-slate-100">
-                                                              {item.subcategories.map((subcat, subcatIndex) => (
-                                                                <tr
-                                                                  key={subcatIndex}
-                                                                  className={subcatIndex % 2 === 0 ? "bg-white" : "bg-slate-50/50"}
-                                                                >
-                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 font-medium">
-                                                                    {subcat.subcategoryName}
-                                                                  </td>
-                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
-                                                                    {subcat.poQuantity}
-                                                                  </td>
-                                                                  <td className="px-4 py-3 whitespace-nowrap">
-                                                                    <input
-                                                                      type="number"
-                                                                      value={subcat.rate}
-                                                                      onChange={(e) =>
-                                                                        handleSubcategoryRateChange(
-                                                                          categoryIndex,
-                                                                          itemIndex,
-                                                                          subcatIndex,
-                                                                          e
-                                                                        )
-                                                                      }
-                                                                      className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-200 p-2 border text-sm bg-white"
-                                                                      min="0"
-                                                                      step="1"
-                                                                    />
-                                                                  </td>
-                                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700 font-mono">
-                                                                    {subcat.value}
-                                                                  </td>
-                                                                </tr>
-                                                              ))}
-                                                            </tbody>
-                                                          </table>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                  )}
-                                                </React.Fragment>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-
-                                        <div className="mt-6">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => addItemRow(categoryIndex, e)}
-                                            className="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                                          >
-                                            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
-                                            Add Item
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-
-                              <div className="pt-8 flex justify-end space-x-4 border-t border-slate-200">
-                                <button
-                                  type="button"
-                                  onClick={() => setCreatingReckonerSiteId(null)}
-                                  className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-xl transition-colors duration-200"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  className="inline-flex justify-center items-center py-3 px-8 border border-transparent shadow-lg text-sm font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-green-200 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                  disabled={isSubmitDisabled()}
-                                >
-                                  {loading.submitting ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                                      Submitting...
-                                    </>
-                                  ) : loading.processing ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                                      Processing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Check className="w-4 h-4 mr-2" />
-                                      Submit
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </form>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <div className="p-4 bg-red-100 rounded-2xl">
-                              <X className="w-8 h-8 text-red-500" />
-                            </div>
-                            <p className="text-sm text-red-600 font-medium">Reckoner Not Created</p>
-                            <button
-                              onClick={() => handleCreateReckoner(site.site_id)}
-                              className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                            >
-                              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
-                              Create Reckoner
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading.sites && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="relative">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-blue-600"></div>
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-indigo-400 opacity-20 animate-pulse"></div>
-              </div>
-              <p className="text-slate-600 font-medium">Loading sites...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {selectedCompanyId && !loading.sites && sites.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="p-4 bg-slate-100 rounded-2xl">
-                <Building2 className="w-12 h-12 text-slate-400" />
-              </div>
-              <h3 className="text-slate-800 font-semibold text-lg">No sites found</h3>
-              <p className="text-slate-600 text-center">
-                No sites available for the selected client. Create a new site to get started.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Loading and Empty States */}
+        <LoadingAndEmptyStates
+          loading={loading}
+          selectedCompanyId={selectedCompanyId}
+          sitesLength={sites.length}
+        />
       </div>
     </div>
   );

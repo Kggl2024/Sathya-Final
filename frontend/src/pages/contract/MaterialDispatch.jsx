@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import Select from "react-select";
 import { Loader2, Package, FileText, X, Truck, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -143,18 +144,23 @@ const MaterialDispatch = () => {
   const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [sites, setSites] = useState([]);
+  const [workDescriptions, setWorkDescriptions] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
+  const [selectedWorkDesc, setSelectedWorkDesc] = useState("");
   const [nextDcNo, setNextDcNo] = useState("");
+  const [masterDcNo, setMasterDcNo] = useState("");
+  const [isMasterDcNoEditable, setIsMasterDcNoEditable] = useState(true);
   const [assignedMaterials, setAssignedMaterials] = useState([]);
-  const [groupedMaterials, setGroupedMaterials] = useState({});
   const [loading, setLoading] = useState({
     companies: false,
     projects: false,
     sites: false,
     dcNo: false,
+    masterDcNo: false,
     materials: false,
+    workDescriptions: false,
     transportTypes: false,
     providers: false,
     vehicles: false,
@@ -207,6 +213,56 @@ const MaterialDispatch = () => {
     }
   };
 
+  // Fetch master_dc_no for selected company
+  const fetchMasterDcNo = async () => {
+    if (!selectedCompany) {
+      setMasterDcNo("");
+      setIsMasterDcNoEditable(true);
+      return;
+    }
+    try {
+      setLoading((prev) => ({ ...prev, masterDcNo: true }));
+      const response = await axios.get("http://localhost:5000/material/master-dc-no", {
+        params: { company_id: selectedCompany },
+      });
+      const masterDcNoData = response.data.data?.dc_no || "";
+      setMasterDcNo(masterDcNoData);
+      setIsMasterDcNoEditable(!masterDcNoData);
+    } catch (error) {
+      console.error("Error fetching master DC No:", error);
+      setError("Failed to load Master DC No. Please try again.");
+      setMasterDcNo("");
+      setIsMasterDcNoEditable(true);
+    } finally {
+      setLoading((prev) => ({ ...prev, masterDcNo: false }));
+    }
+  };
+
+  // Save master_dc_no
+  const saveMasterDcNo = async () => {
+    if (!selectedCompany || !masterDcNo || !isMasterDcNoEditable) return;
+    try {
+      await axios.post("http://localhost:5000/material/master-dc-no", {
+        company_id: selectedCompany,
+        dc_no: masterDcNo,
+      });
+      setIsMasterDcNoEditable(false);
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: "Master DC No saved successfully!",
+        showConfirmButton: false,
+        timer: 1500,
+        toast: true,
+        background: "#ecfdf5",
+        iconColor: "#10b981",
+      });
+    } catch (error) {
+      console.error("Error saving master DC No:", error);
+      setError("Failed to save Master DC No. Please try again.");
+    }
+  };
+
   // Fetch projects with sites
   const fetchProjects = async () => {
     try {
@@ -229,24 +285,90 @@ const MaterialDispatch = () => {
     }
   };
 
-  // Fetch next DC No
+  // Fetch next DC No based on site_id
   const fetchNextDcNo = async () => {
     if (!selectedSite) return;
     try {
       setLoading((prev) => ({ ...prev, dcNo: true }));
-      const response = await axios.get("http://localhost:5000/material/next-dc-no");
-      setNextDcNo(response.data.data.next_dc_no || "");
-      setDispatchData((prev) => ({
-        ...prev,
-        dc_no: response.data.data.next_dc_no || "",
-      }));
+      const response = await axios.get("http://localhost:5000/material/next-dc-no", {
+        params: { site_id: selectedSite },
+      });
+      if (response.data.status === "success" && response.data.data) {
+        const nextDcNoValue = response.data.data.next_dc_no != null ? response.data.data.next_dc_no.toString() : "N/A";
+        setNextDcNo(nextDcNoValue);
+        setDispatchData((prev) => ({
+          ...prev,
+          dc_no: nextDcNoValue,
+        }));
+      } else {
+        setNextDcNo("N/A");
+        setDispatchData((prev) => ({ ...prev, dc_no: "N/A" }));
+      }
     } catch (error) {
       console.error("Error fetching next DC No:", error);
-      setError("Failed to load next DC No. Please try again.");
-      setNextDcNo("");
-      setDispatchData((prev) => ({ ...prev, dc_no: "" }));
+      setError(error.response?.data?.message || "Failed to load next DC No. Please try again.");
+      setNextDcNo("N/A");
+      setDispatchData((prev) => ({ ...prev, dc_no: "N/A" }));
     } finally {
       setLoading((prev) => ({ ...prev, dcNo: false }));
+    }
+  };
+
+  // Fetch work descriptions for selected site
+  const fetchWorkDescriptions = async (site_id) => {
+    try {
+      setLoading((prev) => ({ ...prev, workDescriptions: true }));
+      const response = await axios.get(`http://localhost:5000/material/work-descriptions?site_id=${site_id}`);
+      const descriptions = Array.isArray(response.data?.data) ? response.data.data : [];
+      const uniqueDescs = Array.from(new Map(descriptions.map((desc) => [desc.desc_id, desc])).values());
+      setWorkDescriptions(uniqueDescs);
+      setSelectedWorkDesc("");
+    } catch (error) {
+      console.error("Error fetching work descriptions:", error);
+      setError("Failed to load work descriptions. Please try again.");
+      setWorkDescriptions([]);
+      setSelectedWorkDesc("");
+    } finally {
+      setLoading((prev) => ({ ...prev, workDescriptions: false }));
+    }
+  };
+
+  // Fetch assigned materials with dispatch details
+  const fetchAssignedMaterials = async () => {
+    if (!selectedProject || !selectedSite) return;
+    try {
+      setLoading((prev) => ({ ...prev, materials: true }));
+      setError(null);
+      const response = await axios.get("http://localhost:5000/material/assignments-with-dispatch", {
+        params: { pd_id: selectedProject, site_id: selectedSite },
+      });
+      const materials = response.data.data || [];
+      setAssignedMaterials(materials);
+
+      // Initialize dispatch quantities and remarks
+      const newDispatchQuantities = {};
+      const newRemarks = {};
+      materials.forEach((assignment) => {
+        newDispatchQuantities[assignment.id] = {
+          dispatch_qty: 0,
+        };
+        newRemarks[assignment.id] = {
+          comp_a_remarks: "",
+          comp_b_remarks: "",
+          comp_c_remarks: "",
+        };
+      });
+      setDispatchQuantities(newDispatchQuantities);
+      setRemarks(newRemarks);
+    } catch (error) {
+      console.error("Error fetching material assignments:", error);
+      setError(
+        error.response?.data?.message ||
+        error.response?.data?.sqlMessage ||
+        "Failed to load material assignments. Please try again."
+      );
+    } finally {
+      setLoading((prev) => ({ ...prev, materials: false }));
     }
   };
 
@@ -308,68 +430,21 @@ const MaterialDispatch = () => {
     }
   };
 
-  // Fetch assigned materials with dispatch details
-  const fetchAssignedMaterials = async () => {
-    if (!selectedProject || !selectedSite) return;
-    try {
-      setLoading((prev) => ({ ...prev, materials: true }));
-      setError(null);
-      const response = await axios.get("http://localhost:5000/material/assignments-with-dispatch", {
-        params: { pd_id: selectedProject, site_id: selectedSite },
-      });
-      const materials = response.data.data || [];
-      setAssignedMaterials(materials);
-
-      // Group materials by desc_id
-      const grouped = materials.reduce((acc, item) => {
-        const key = item.desc_id || "unknown";
-        if (!acc[key]) {
-          acc[key] = { desc_name: item.desc_name || "Unknown Description", items: [] };
-        }
-        acc[key].items.push(item);
-        return acc;
-      }, {});
-      setGroupedMaterials(grouped);
-
-      // Initialize dispatch quantities and remarks
-      const newDispatchQuantities = {};
-      const newRemarks = {};
-      materials.forEach((assignment) => {
-        newDispatchQuantities[assignment.id] = {
-          dispatch_qty: assignment.remaining_quantity || 0,
-        };
-        newRemarks[assignment.id] = {
-          comp_a_remarks: "",
-          comp_b_remarks: "",
-          comp_c_remarks: "",
-        };
-      });
-      setDispatchQuantities(newDispatchQuantities);
-      setRemarks(newRemarks);
-    } catch (error) {
-      console.error("Error fetching material assignments:", error);
-      setError(
-        error.response?.data?.message ||
-        error.response?.data?.sqlMessage ||
-        "Failed to load material assignments. Please try again."
-      );
-    } finally {
-      setLoading((prev) => ({ ...prev, materials: false }));
-    }
-  };
-
   // Handle company selection
   const handleCompanyChange = (e) => {
     const company_id = e.target.value;
     setSelectedCompany(company_id);
     setSelectedProject("");
     setSelectedSite("");
+    setSelectedWorkDesc("");
     setSites([]);
+    setWorkDescriptions([]);
     setAssignedMaterials([]);
-    setGroupedMaterials({});
     setDispatchQuantities({});
     setRemarks({});
     setNextDcNo("");
+    setMasterDcNo("");
+    setIsMasterDcNoEditable(true);
     const selectedCompanyData = companies.find((company) => company.company_id === company_id);
     setDispatchData({
       dc_no: "",
@@ -403,9 +478,10 @@ const MaterialDispatch = () => {
     const project_id = e.target.value;
     setSelectedProject(project_id);
     setSelectedSite("");
+    setSelectedWorkDesc("");
     setSites([]);
+    setWorkDescriptions([]);
     setAssignedMaterials([]);
-    setGroupedMaterials({});
     setDispatchQuantities({});
     setRemarks({});
     setNextDcNo("");
@@ -434,7 +510,7 @@ const MaterialDispatch = () => {
       const selectedCompanyData = companies.find((company) => company.company_id === company_id);
       const projectSites = selectedProj && Array.isArray(selectedProj.sites) ? selectedProj.sites : [];
       setSites(projectSites);
-      if (projectSites.length > 0 && !selectedSite) {
+      if (projectSites.length > 0) {
         setSelectedSite(projectSites[0].site_id);
         setDispatchData({
           dc_no: "",
@@ -464,8 +540,9 @@ const MaterialDispatch = () => {
   const handleSiteChange = (e) => {
     const site_id = e.target.value;
     setSelectedSite(site_id);
+    setSelectedWorkDesc("");
+    setWorkDescriptions([]);
     setAssignedMaterials([]);
-    setGroupedMaterials({});
     setDispatchQuantities({});
     setRemarks({});
     setNextDcNo("");
@@ -473,7 +550,7 @@ const MaterialDispatch = () => {
     setDispatchData((prev) => ({
       ...prev,
       order_no: selectedSiteData ? selectedSiteData.po_number || "" : "",
-      dc_no: nextDcNo,
+      dc_no: "",
     }));
     setTransportData({
       transport_type_id: "",
@@ -494,6 +571,18 @@ const MaterialDispatch = () => {
     });
     setError(null);
     setIsTransportModalOpen(false);
+    if (site_id) {
+      fetchWorkDescriptions(site_id);
+      fetchAssignedMaterials();
+      fetchNextDcNo();
+    }
+  };
+
+  // Handle work description selection
+  const handleWorkDescChange = (selectedOption) => {
+    const desc_id = selectedOption ? selectedOption.value : "";
+    setSelectedWorkDesc(desc_id);
+    setError(null);
   };
 
   // Handle dispatch form input changes
@@ -502,6 +591,11 @@ const MaterialDispatch = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Handle master_dc_no change
+  const handleMasterDcNoChange = (value) => {
+    setMasterDcNo(value);
   };
 
   // Handle transport form input changes
@@ -619,7 +713,6 @@ const MaterialDispatch = () => {
       remaining -= comp_c_qty;
     }
 
-    // Distribute remaining quantity to components with non-null ratios
     if (remaining > 0) {
       if (assignment.comp_ratio_a !== null && comp_a_qty !== null) {
         comp_a_qty += remaining;
@@ -635,10 +728,11 @@ const MaterialDispatch = () => {
 
   // Validate dispatch and remarks for enabling Dispatch button
   const isDispatchEnabled = () => {
-    if (!dispatchData.dc_no || !dispatchData.dispatch_date || !dispatchData.order_no || !dispatchData.vendor_code) {
+    if (!dispatchData.dc_no || !dispatchData.dispatch_date || !dispatchData.order_no || !dispatchData.vendor_code || !selectedWorkDesc) {
       return false;
     }
-    for (const assignment of assignedMaterials) {
+    const filteredMaterials = assignedMaterials.filter((assignment) => assignment.desc_id === selectedWorkDesc && assignment.dispatch_status === "not-dispatched");
+    for (const assignment of filteredMaterials) {
       const assignmentId = assignment.id;
       const dispatchQty = dispatchQuantities[assignmentId]?.dispatch_qty || 0;
       const assignmentRemarks = remarks[assignmentId];
@@ -656,7 +750,7 @@ const MaterialDispatch = () => {
         return false;
       }
     }
-    return true;
+    return filteredMaterials.length > 0;
   };
 
   // Handle dispatch form submission
@@ -665,7 +759,8 @@ const MaterialDispatch = () => {
       setLoading((prev) => ({ ...prev, submitting: true }));
       setError(null);
 
-      // Validate transport fields
+      await saveMasterDcNo();
+
       const requiredFields = [
         transportData.transport_type_id,
         transportData.provider_id,
@@ -690,9 +785,8 @@ const MaterialDispatch = () => {
         return;
       }
 
-      // Prepare dispatch payload
       const dispatchPayload = assignedMaterials
-        .filter((assignment) => assignment.dispatch_status === "not-dispatched")
+        .filter((assignment) => assignment.desc_id === selectedWorkDesc && assignment.dispatch_status === "not-dispatched")
         .map((assignment) => {
           const dispatchQty = dispatchQuantities[assignment.id]?.dispatch_qty || 0;
           const { comp_a_qty, comp_b_qty, comp_c_qty } = calculateComponentQuantities(assignment, dispatchQty);
@@ -710,11 +804,11 @@ const MaterialDispatch = () => {
             comp_a_remarks: comp_a_qty !== null ? remarks[assignment.id]?.comp_a_remarks || null : null,
             comp_b_remarks: comp_b_qty !== null ? remarks[assignment.id]?.comp_b_remarks || null : null,
             comp_c_remarks: comp_c_qty !== null ? remarks[assignment.id]?.comp_c_remarks || null : null,
+            master_dc_no: masterDcNo || null,
           };
         })
         .filter((payload) => payload.dispatch_qty > 0);
 
-      // Prepare transport payload
       const transportPayload = {
         transport_type_id: parseInt(transportData.transport_type_id),
         provider_id: transportData.provider_id,
@@ -731,13 +825,11 @@ const MaterialDispatch = () => {
         driver_address: newEntryData.driver_address || null,
       };
 
-      // Combine payloads
       const payload = {
         assignments: dispatchPayload,
         transport: transportPayload,
       };
 
-      // Submit combined payload
       const response = await axios.post("http://localhost:5000/material/add-dispatch", payload);
 
       if (response.data.status === "already_dispatched") {
@@ -757,7 +849,6 @@ const MaterialDispatch = () => {
         return;
       }
 
-      // Show success toast
       Swal.fire({
         position: "top-end",
         icon: "success",
@@ -769,7 +860,6 @@ const MaterialDispatch = () => {
         iconColor: "#10b981",
       });
 
-      // Reset form and close modal
       setDispatchData({ dc_no: "", dispatch_date: "", order_no: "", vendor_code: "" });
       setTransportData({
         transport_type_id: "",
@@ -790,8 +880,10 @@ const MaterialDispatch = () => {
       });
       setDispatchQuantities({});
       setRemarks({});
+      setSelectedWorkDesc("");
       setIsTransportModalOpen(false);
       await fetchAssignedMaterials();
+      await fetchWorkDescriptions(selectedSite);
       await fetchTransportTypes();
       await fetchVehicles();
       await fetchDrivers();
@@ -839,6 +931,7 @@ const MaterialDispatch = () => {
 
   useEffect(() => {
     if (selectedCompany) {
+      fetchMasterDcNo();
       const filteredProjects = allProjects.filter((project) => project.company_id === selectedCompany);
       setProjects(filteredProjects);
       if (filteredProjects.length > 0 && !selectedProject) {
@@ -847,12 +940,18 @@ const MaterialDispatch = () => {
         setSelectedProject("");
         setSites([]);
         setSelectedSite("");
+        setSelectedWorkDesc("");
+        setWorkDescriptions([]);
       }
     } else {
       setProjects([]);
       setSelectedProject("");
       setSites([]);
       setSelectedSite("");
+      setSelectedWorkDesc("");
+      setWorkDescriptions([]);
+      setMasterDcNo("");
+      setIsMasterDcNoEditable(true);
     }
   }, [selectedCompany, allProjects]);
 
@@ -869,6 +968,8 @@ const MaterialDispatch = () => {
         }));
       } else if (!projectSites.some((site) => site.site_id === selectedSite)) {
         setSelectedSite("");
+        setSelectedWorkDesc("");
+        setWorkDescriptions([]);
         setDispatchData((prev) => ({
           ...prev,
           order_no: "",
@@ -877,6 +978,8 @@ const MaterialDispatch = () => {
     } else {
       setSites([]);
       setSelectedSite("");
+      setSelectedWorkDesc("");
+      setWorkDescriptions([]);
       setDispatchData((prev) => ({
         ...prev,
         order_no: "",
@@ -885,6 +988,9 @@ const MaterialDispatch = () => {
   }, [selectedProject, allProjects]);
 
   useEffect(() => {
+    if (selectedSite) {
+      fetchWorkDescriptions(selectedSite);
+    }
     if (selectedProject && selectedSite) {
       fetchAssignedMaterials();
       fetchNextDcNo();
@@ -908,8 +1014,18 @@ const MaterialDispatch = () => {
     }
   }, [transportData.transport_type_id]);
 
-  // Determine if the selected transport type is 'own' (id 1)
   const isOwnVehicle = transportData.transport_type_id === "1";
+
+  const workOptions = workDescriptions.map((desc) => ({
+    value: desc.desc_id,
+    label: desc.desc_name || "Unknown Work Description",
+  }));
+
+  const selectedWorkOption = workOptions.find((opt) => opt.value === selectedWorkDesc);
+
+  const filteredMaterials = assignedMaterials.filter(
+    (assignment) => assignment.desc_id === selectedWorkDesc && assignment.dispatch_status === "not-dispatched"
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 p-4 sm:p-6 lg:p-8">
@@ -989,12 +1105,43 @@ const MaterialDispatch = () => {
           </div>
         </div>
 
-        {/* Dispatch Details */}
+        {/* Work Description Selection */}
         {selectedCompany && selectedProject && selectedSite && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Work Description</label>
+        <Select
+  options={workOptions}
+  value={selectedWorkOption}
+  onChange={handleWorkDescChange}
+  placeholder="Select Work Description"
+  isSearchable
+  isClearable
+  isDisabled={loading.workDescriptions}
+  className="text-sm"
+  classNamePrefix="select"
+  styles={{
+    control: (provided, state) => ({
+      ...provided,
+      minHeight: '38px',
+      borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
+    }),
+    menu: (provided) => ({
+      ...provided,
+      zIndex: 10,
+    }),
+  }}
+/>
+            {loading.workDescriptions && <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />}
+          </div>
+        )}
+
+        {/* Dispatch Details */}
+        {selectedCompany && selectedProject && selectedSite && selectedWorkDesc && (
           <div className="mb-6 bg-white p-6 rounded-xl shadow-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispatch Details</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <div className="w-full sm:w-1/4">
+              <div className="w-full sm:w-1/5">
                 <label className="block text-xs font-medium text-gray-600" htmlFor="dc_no">
                   DC No <span className="text-red-500">*</span>
                 </label>
@@ -1006,7 +1153,7 @@ const MaterialDispatch = () => {
                   )}
                 </div>
               </div>
-              <div className="w-full sm:w-1/4">
+              <div className="w-full sm:w-1/5">
                 <label className="block text-xs font-medium text-gray-600" htmlFor="dispatch_date">
                   Dispatch Date <span className="text-red-500">*</span>
                 </label>
@@ -1019,7 +1166,7 @@ const MaterialDispatch = () => {
                   aria-required="true"
                 />
               </div>
-              <div className="w-full sm:w-1/4">
+              <div className="w-full sm:w-1/5">
                 <label className="block text-xs font-medium text-gray-600" htmlFor="order_no">
                   Order No <span className="text-red-500">*</span>
                 </label>
@@ -1027,13 +1174,35 @@ const MaterialDispatch = () => {
                   {dispatchData.order_no || "N/A"}
                 </div>
               </div>
-              <div className="w-full sm:w-1/4">
+              <div className="w-full sm:w-1/5">
                 <label className="block text-xs font-medium text-gray-600" htmlFor="vendor_code">
                   Vendor Code <span className="text-red-500">*</span>
                 </label>
                 <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
                   {dispatchData.vendor_code || "N/A"}
                 </div>
+              </div>
+              <div className="w-full sm:w-1/5">
+                <label className="block text-xs font-medium text-gray-600" htmlFor="master_dc_no">
+                  Master DC No <span className="text-red-500">*</span>
+                </label>
+                {loading.masterDcNo ? (
+                  <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />
+                ) : isMasterDcNoEditable ? (
+                  <input
+                    type="text"
+                    id="master_dc_no"
+                    value={masterDcNo}
+                    onChange={(e) => handleMasterDcNoChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all duration-200"
+                    placeholder="Enter Master DC No"
+                    aria-required="true"
+                  />
+                ) : (
+                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
+                    {masterDcNo || "N/A"}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1057,7 +1226,7 @@ const MaterialDispatch = () => {
         )}
 
         {/* Loading State */}
-        {loading.materials ? (
+        {loading.materials || loading.workDescriptions ? (
           <div className="flex justify-center items-center py-16">
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="h-12 w-12 text-teal-600 animate-spin" aria-hidden="true" />
@@ -1069,97 +1238,218 @@ const MaterialDispatch = () => {
             <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" aria-hidden="true" />
             <p className="text-gray-600 text-lg font-medium">Please select a company, project, and site.</p>
           </div>
-        ) : Object.keys(groupedMaterials).length === 0 ? (
+        ) : !selectedWorkDesc ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
             <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" aria-hidden="true" />
-            <p className="text-gray-600 text-lg font-medium">No non-dispatched material assignments found for this project and site.</p>
-            <p className="text-gray-500 mt-2">Assign materials to this project and site to dispatch them.</p>
+            <p className="text-gray-600 text-lg font-medium">Please select a work description.</p>
+          </div>
+        ) : filteredMaterials.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
+            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" aria-hidden="true" />
+            <p className="text-gray-600 text-lg font-medium">No non-dispatched material assignments found for this work description.</p>
+            <p className="text-gray-500 mt-2">Assign materials to this work description to dispatch them.</p>
           </div>
         ) : (
           <>
-            {/* Desktop View with Accordions */}
-     <div className="hidden md:block bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
-  {Object.entries(groupedMaterials).map(([desc_id, group]) => (
-    <details key={desc_id} open className="mb-4 border-b border-gray-200">
-      <summary className="px-6 py-4 bg-gray-50 text-sm font-medium text-gray-700 cursor-pointer flex justify-between items-center">
-        <span>Work Description: {group.desc_name}</span>
-      </summary>
-      <div className="p-4 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
-            <tr>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">#</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Material Details</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Assigned Quantity</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Remaining Quantity & UOM</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Dispatch Quantity</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Component Quantities</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Remarks</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {group.items
-              .filter((assignment) => assignment.dispatch_status === "not-dispatched")
-              .map((assignment, index) => {
+            {/* Desktop View with Table */}
+            <div className="hidden md:block bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+              <div className="p-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">#</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Material Details</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Assigned Quantity</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Remaining Quantity & UOM</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Dispatch Quantity</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Component Quantities</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold tracking-wider">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredMaterials.map((assignment, index) => {
+                      const dispatchQty = dispatchQuantities[assignment.id]?.dispatch_qty || 0;
+                      const { comp_a_qty, comp_b_qty, comp_c_qty } = calculateComponentQuantities(assignment, dispatchQty);
+                      return (
+                        <tr key={assignment.id} className="hover:bg-teal-50 transition-colors duration-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            <div className="space-y-1">
+                              <p className="font-medium">{assignment.item_name || "N/A"} {getRatioString(assignment)}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            <span className="inline-flex items-center px-2.5 py-0.5 text-md font-bold">
+                              {assignment.quantity || "N/A"} | {assignment.uom_name || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            <span className="inline-flex items-center px-2.5 py-0.5 text-md font-bold">
+                              {assignment.remaining_quantity || "N/A"} | {assignment.uom_name || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            <div className="space-y-1">
+                              <input
+                                type="number"
+                                value={dispatchQty}
+                                onChange={(e) => handleQuantityChange(assignment.id, e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
+                                placeholder="Dispatch Qty"
+                                min="0"
+                                max={assignment.remaining_quantity}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            <div className="space-y-4">
+                              {assignment.comp_ratio_a !== null && (
+                                <div className="flex items-center gap-4">
+                                  <label className="w-24 text-sm font-medium text-gray-700">Comp A:</label>
+                                  <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_a_qty ?? "N/A"}</span>
+                                </div>
+                              )}
+                              {assignment.comp_ratio_b !== null && (
+                                <div className="flex items-center gap-4">
+                                  <label className="w-24 text-sm font-medium text-gray-700">Comp B:</label>
+                                  <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_b_qty ?? "N/A"}</span>
+                                </div>
+                              )}
+                              {assignment.comp_ratio_c !== null && (
+                                <div className="flex items-center gap-4">
+                                  <label className="w-24 text-sm font-medium text-gray-700">Comp C:</label>
+                                  <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_c_qty ?? "N/A"}</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            <div className="space-y-4">
+                              {assignment.comp_ratio_a !== null && (
+                                <div className="flex items-center gap-4">
+                                  <input
+                                    type="text"
+                                    value={remarks[assignment.id]?.comp_a_remarks ?? ""}
+                                    onChange={(e) => handleRemarksChange(assignment.id, "comp_a_remarks", e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
+                                    placeholder="Remarks for Component A"
+                                    required={comp_a_qty !== null}
+                                  />
+                                </div>
+                              )}
+                              {assignment.comp_ratio_b !== null && (
+                                <div className="flex items-center gap-4">
+                                  <input
+                                    type="text"
+                                    value={remarks[assignment.id]?.comp_b_remarks ?? ""}
+                                    onChange={(e) => handleRemarksChange(assignment.id, "comp_b_remarks", e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
+                                    placeholder="Remarks for Component B"
+                                    required={comp_b_qty !== null}
+                                  />
+                                </div>
+                              )}
+                              {assignment.comp_ratio_c !== null && (
+                                <div className="flex items-center gap-4">
+                                  <input
+                                    type="text"
+                                    value={remarks[assignment.id]?.comp_c_remarks ?? ""}
+                                    onChange={(e) => handleRemarksChange(assignment.id, "comp_c_remarks", e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
+                                    placeholder="Remarks for Component C"
+                                    required={comp_c_qty !== null}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 flex justify-end">
+                <button
+                  onClick={() => setIsTransportModalOpen(true)}
+                  className={`px-4 py-2 text-white rounded-lg text-sm font-medium shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                    isDispatchEnabled() ? "bg-teal-600 hover:bg-teal-700" : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!isDispatchEnabled()}
+                >
+                  <Truck className="h-4 w-4 inline-block mr-2" />
+                  Assign Transport
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-6 mb-6">
+              {filteredMaterials.map((assignment, index) => {
                 const dispatchQty = dispatchQuantities[assignment.id]?.dispatch_qty || 0;
                 const { comp_a_qty, comp_b_qty, comp_c_qty } = calculateComponentQuantities(assignment, dispatchQty);
                 return (
-                  <tr key={assignment.id} className="hover:bg-teal-50 transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <div className="space-y-1">
-                        <p className="font-medium">{assignment.item_name || "N/A"} {getRatioString(assignment)}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <span className="inline-flex items-center px-2.5 py-0.5 text-md font-bold">
-                        {assignment.quantity || "N/A"} | {assignment.uom_name || "N/A"}
+                  <div key={assignment.id} className="bg-white rounded-xl shadow-lg border border-gray-100 p-5 space-y-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-900">#{index + 1}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Material Details</p>
+                      <p className="text-sm text-gray-600">{assignment.item_name || "N/A"} {getRatioString(assignment)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Assigned Quantity</p>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                        {assignment.quantity || "N/A"} {assignment.uom_name || "N/A"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <span className="inline-flex items-center px-2.5 py-0.5 text-md font-bold">
-                        {assignment.remaining_quantity || "N/A"} | {assignment.uom_name || "N/A"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Remaining Quantity & UOM</p>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                        {assignment.remaining_quantity || "N/A"} {assignment.uom_name || "N/A"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <div className="space-y-1">
-                        <input
-                          type="number"
-                          value={dispatchQty}
-                          onChange={(e) => handleQuantityChange(assignment.id, e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
-                          placeholder="Dispatch Qty"
-                          min="0"
-                          max={assignment.remaining_quantity}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      <div className="space-y-4">
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Dispatch Quantity</p>
+                      <input
+                        type="number"
+                        value={dispatchQty}
+                        onChange={(e) => handleQuantityChange(assignment.id, e.target.value)}
+                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
+                        placeholder="Dispatch Qty"
+                        min="0"
+                        max={assignment.remaining_quantity}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Component Quantities</p>
+                      <div className="space-y-4 mt-2">
                         {assignment.comp_ratio_a !== null && (
                           <div className="flex items-center gap-4">
-                            <label className="w-24 text-sm font-medium text-gray-700">Comp A:</label>
+                            <label className="w-24 text-sm font-medium text-gray-700">Component A:</label>
                             <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_a_qty ?? "N/A"}</span>
                           </div>
                         )}
                         {assignment.comp_ratio_b !== null && (
                           <div className="flex items-center gap-4">
-                            <label className="w-24 text-sm font-medium text-gray-700">Comp B:</label>
+                            <label className="w-24 text-sm font-medium text-gray-700">Component B:</label>
                             <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_b_qty ?? "N/A"}</span>
                           </div>
                         )}
                         {assignment.comp_ratio_c !== null && (
                           <div className="flex items-center gap-4">
-                            <label className="w-24 text-sm font-medium text-gray-700">Comp C:</label>
+                            <label className="w-24 text-sm font-medium text-gray-700">Component C:</label>
                             <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_c_qty ?? "N/A"}</span>
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      <div className="space-y-4">
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Remarks</p>
+                      <div className="space-y-4 mt-2">
                         {assignment.comp_ratio_a !== null && (
-                          <div className="flex items-center gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-gray-700">Component A</label>
                             <input
                               type="text"
                               value={remarks[assignment.id]?.comp_a_remarks ?? ""}
@@ -1171,7 +1461,8 @@ const MaterialDispatch = () => {
                           </div>
                         )}
                         {assignment.comp_ratio_b !== null && (
-                          <div className="flex items-center gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-gray-700">Component B</label>
                             <input
                               type="text"
                               value={remarks[assignment.id]?.comp_b_remarks ?? ""}
@@ -1183,7 +1474,8 @@ const MaterialDispatch = () => {
                           </div>
                         )}
                         {assignment.comp_ratio_c !== null && (
-                          <div className="flex items-center gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-gray-700">Component C</label>
                             <input
                               type="text"
                               value={remarks[assignment.id]?.comp_c_remarks ?? ""}
@@ -1195,165 +1487,23 @@ const MaterialDispatch = () => {
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-          </tbody>
-        </table>
-      </div>
-    </details>
-  ))}
-  <div className="p-4 flex justify-end">
-    <button
-      onClick={() => setIsTransportModalOpen(true)}
-      className={`px-4 py-2 text-white rounded-lg text-sm font-medium shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-        isDispatchEnabled() && assignedMaterials.some(a => a.dispatch_status === "not-dispatched")
-          ? "bg-teal-600 hover:bg-teal-700"
-          : "bg-gray-400 cursor-not-allowed"
-      }`}
-      disabled={!isDispatchEnabled() || !assignedMaterials.some(a => a.dispatch_status === "not-dispatched")}
-    >
-      <Truck className="h-4 w-4 inline-block mr-2" />
-      Assign Transport
-    </button>
-  </div>
-</div>
-
-            {/* Mobile Card View */}
-     <div className="md:hidden space-y-6 mb-6">
-  {Object.entries(groupedMaterials).map(([desc_id, group]) => (
-    <details key={desc_id} open className="bg-white rounded-xl shadow-lg border border-gray-100">
-      <summary className="px-5 py-4 bg-gray-50 text-sm font-medium text-gray-700 cursor-pointer flex justify-between items-center">
-        <span>Work Description: {group.desc_name}</span>
-      </summary>
-      <div className="p-5 space-y-6">
-        {group.items
-          .filter((assignment) => assignment.dispatch_status === "not-dispatched")
-          .map((assignment, index) => {
-            const dispatchQty = dispatchQuantities[assignment.id]?.dispatch_qty || 0;
-            const { comp_a_qty, comp_b_qty, comp_c_qty } = calculateComponentQuantities(assignment, dispatchQty);
-            return (
-              <div key={assignment.id} className="space-y-6 border-b border-gray-200 pb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900">#{index + 1}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Material Details</p>
-                  <p className="text-sm text-gray-600">{assignment.item_name || "N/A"} {getRatioString(assignment)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Assigned Quantity</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                    {assignment.quantity || "N/A"} {assignment.uom_name || "N/A"}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Remaining Quantity & UOM</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                    {assignment.remaining_quantity || "N/A"} {assignment.uom_name || "N/A"}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Dispatch Quantity</p>
-                  <input
-                    type="number"
-                    value={dispatchQty}
-                    onChange={(e) => handleQuantityChange(assignment.id, e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
-                    placeholder="Dispatch Qty"
-                    min="0"
-                    max={assignment.remaining_quantity}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Component Quantities</p>
-                  <div className="space-y-4 mt-2">
-                    {assignment.comp_ratio_a !== null && (
-                      <div className="flex items-center gap-4">
-                        <label className="w-24 text-sm font-medium text-gray-700">Component A:</label>
-                        <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_a_qty ?? "N/A"}</span>
-                      </div>
-                    )}
-                    {assignment.comp_ratio_b !== null && (
-                      <div className="flex items-center gap-4">
-                        <label className="w-24 text-sm font-medium text-gray-700">Component B:</label>
-                        <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_b_qty ?? "N/A"}</span>
-                      </div>
-                    )}
-                    {assignment.comp_ratio_c !== null && (
-                      <div className="flex items-center gap-4">
-                        <label className="w-24 text-sm font-medium text-gray-700">Component C:</label>
-                        <span className="text-sm bg-teal-50 px-3 py-1 rounded-md">{comp_c_qty ?? "N/A"}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Remarks</p>
-                  <div className="space-y-4 mt-2">
-                    {assignment.comp_ratio_a !== null && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">Component A</label>
-                        <input
-                          type="text"
-                          value={remarks[assignment.id]?.comp_a_remarks ?? ""}
-                          onChange={(e) => handleRemarksChange(assignment.id, "comp_a_remarks", e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
-                          placeholder="Remarks for Component A"
-                          required={comp_a_qty !== null}
-                        />
-                      </div>
-                    )}
-                    {assignment.comp_ratio_b !== null && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">Component B</label>
-                        <input
-                          type="text"
-                          value={remarks[assignment.id]?.comp_b_remarks ?? ""}
-                          onChange={(e) => handleRemarksChange(assignment.id, "comp_b_remarks", e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
-                          placeholder="Remarks for Component B"
-                          required={comp_b_qty !== null}
-                        />
-                      </div>
-                    )}
-                    {assignment.comp_ratio_c !== null && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">Component C</label>
-                        <input
-                          type="text"
-                          value={remarks[assignment.id]?.comp_c_remarks ?? ""}
-                          onChange={(e) => handleRemarksChange(assignment.id, "comp_c_remarks", e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
-                          placeholder="Remarks for Component C"
-                          required={comp_c_qty !== null}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="p-4 flex justify-end">
+                <button
+                  onClick={() => setIsTransportModalOpen(true)}
+                  className={`px-4 py-2 text-white rounded-lg text-sm font-medium shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                    isDispatchEnabled() ? "bg-teal-600 hover:bg-teal-700" : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!isDispatchEnabled()}
+                >
+                  <Truck className="h-4 w-4 inline-block mr-2" />
+                  Dispatch Materials
+                </button>
               </div>
-            );
-          })}
-      </div>
-    </details>
-  ))}
-  <div className="p-4 flex justify-end">
-    <button
-      onClick={() => setIsTransportModalOpen(true)}
-      className={`px-4 py-2 text-white rounded-lg text-sm font-medium shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-        isDispatchEnabled() && assignedMaterials.some(a => a.dispatch_status === "not-dispatched")
-          ? "bg-teal-600 hover:bg-teal-700"
-          : "bg-gray-400 cursor-not-allowed"
-      }`}
-      disabled={!isDispatchEnabled() || !assignedMaterials.some(a => a.dispatch_status === "not-dispatched")}
-    >
-      <Truck className="h-4 w-4 inline-block mr-2" />
-      Dispatch Materials
-    </button>
-  </div>
-</div>
+            </div>
 
             {/* Transport Modal */}
             {isTransportModalOpen && (
@@ -1624,6 +1774,20 @@ const MaterialDispatch = () => {
           </>
         )}
       </div>
+
+      <style>{`
+        .select__control {
+          border-color: #d1d5db;
+          min-height: 38px;
+        }
+        .select__control--is-focused {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .select__menu {
+          z-index: 10;
+        }
+      `}</style>
     </div>
   );
 };

@@ -183,7 +183,7 @@ const CompanyCreation = ({ onCompanyCreated, onClose }) => {
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6 transform transition-all">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-3">
-            <Building2 className="text-indigo-600 w-6 h-6" />
+            <Building2 className="text-[#1e7a6f] w-6 h-6" />
             <h3 className="text-2xl font-bold text-gray-900">Create Client</h3>
           </div>
           <button
@@ -318,13 +318,13 @@ const CompanyCreation = ({ onCompanyCreated, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium text-sm shadow-sm"
+              className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium text-sm shadow-sm cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all font-medium text-sm flex items-center justify-center space-x-2 disabled:opacity-50 shadow-md"
+              className="px-6 py-2.5 bg-[#1e7a6f] text-white rounded-lg hover:opacity-90 cursor-pointer transition-all font-medium text-sm flex items-center justify-center space-x-2 disabled:opacity-50 shadow-md"
               disabled={loading}
             >
               {loading && <Loader2 className="animate-spin w-5 h-5" />}
