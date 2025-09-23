@@ -3,6 +3,16 @@ import React from "react";
 import { FileText, Plus, Check } from "lucide-react";
 import CategorySection from "./CategorySection";
 
+const themeColors = {
+  primary: '#1e7a6f',    // Dark Teal
+  accent: '#c79100',      // Gold/Amber
+  lightBg: '#f8f9fa',    // Very light gray for page background
+  textPrimary: '#212529', // Dark charcoal for text
+  textSecondary: '#6c757d', // Gray for secondary text
+  border: '#dee2e6',      // Neutral border color
+  lightBorder: '#e9ecef', // Lighter border for internal elements
+};
+
 const ReckonerForm = ({
   formData,
   handleSubmit,
@@ -31,28 +41,46 @@ const ReckonerForm = ({
   setCreatingReckonerSiteId
 }) => {
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form 
+      onSubmit={handleSubmit} 
+      className="space-y-6"
+      style={{ backgroundColor: '#ffffff' }}
+    >
       <input type="hidden" name="poNumber" value={formData.poNumber} />
       <input type="hidden" name="siteId" value={formData.siteId} />
 
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-4">
+            <div 
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: themeColors.primary }}
+            >
+              <FileText className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-slate-800">Categories</h2>
+            <h2 
+              className="text-xl font-semibold"
+              style={{ color: themeColors.textPrimary }}
+            >
+              Categories
+            </h2>
           </div>
           <button
             type="button"
             onClick={addCategory}
-            className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2"
+            style={{ 
+              backgroundColor: themeColors.primary,
+              ringColor: themeColors.accent 
+            }}
           >
-            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
             Add Category
           </button>
         </div>
 
+        {/* Category Sections */}
         {formData.categories.map((category, categoryIndex) => (
           <CategorySection
             key={categoryIndex}
@@ -83,28 +111,36 @@ const ReckonerForm = ({
         ))}
       </div>
 
-      <div className="pt-8 flex justify-end space-x-4 border-t border-slate-200">
+      {/* Form Actions */}
+      <div 
+        className="pt-6 flex justify-end space-x-4 border-t"
+        style={{ borderColor: themeColors.border }}
+      >
         <button
           type="button"
           onClick={() => setCreatingReckonerSiteId(null)}
-          className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-xl transition-colors duration-200"
+          className="px-5 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2"
+          style={{ 
+            backgroundColor: themeColors.lightBorder,
+            color: themeColors.textSecondary,
+            ringColor: themeColors.accent 
+          }}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="inline-flex justify-center items-center py-3 px-8 border border-transparent shadow-lg text-sm font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-green-200 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ 
+            backgroundColor: themeColors.primary,
+            ringColor: themeColors.accent 
+          }}
           disabled={isSubmitDisabled()}
         >
-          {loading.submitting ? (
+          {loading.submitting || loading.processing ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-              Submitting...
-            </>
-          ) : loading.processing ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-              Processing...
+              {loading.submitting ? "Submitting..." : "Processing..."}
             </>
           ) : (
             <>

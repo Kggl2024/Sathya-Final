@@ -1,7 +1,17 @@
 // src/components/POComponents/HeaderSection.jsx
 import React from "react";
-import { Settings, Building2, Plus, X } from "lucide-react";
+import { Settings, Plus, X } from "lucide-react";
 import SearchableClientDropdown from "./SearchableClientDropdown";
+
+const themeColors = {
+  primary: '#1e7a6f',    // Dark Teal
+  accent: '#c79100',      // Gold/Amber
+  lightBg: '#f8f9fa',    // Very light gray for page background
+  textPrimary: '#212529', // Dark charcoal for text
+  textSecondary: '#6c757d', // Gray for secondary text
+  border: '#dee2e6',      // Neutral border color
+  lightBorder: '#e9ecef', // Lighter border for internal elements
+};
 
 const HeaderSection = ({
   companies,
@@ -11,53 +21,70 @@ const HeaderSection = ({
   loading
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-          <Settings className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            Master PO Creation
-          </h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Create and manage project work orders
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-1">
-          <label className="text-sm font-semibold text-slate-700 mb-2 block flex items-center gap-2">
-            <Building2 size={16} />
-            Select Client
-          </label>
-          <SearchableClientDropdown
-            options={companies}
-            value={selectedCompanyId}
-            onChange={handleCompanyChange}
-            placeholder="Search client"
-            disabled={loading.companies}
-            isLoading={loading.companies}
-          />
+    <div 
+      className="bg-white rounded-xl shadow-sm border p-6 mb-6" 
+      style={{ borderColor: themeColors.border }}
+    >
+      <div className="flex flex-col gap-4">
+        {/* Title and Description */}
+        <div className="flex items-center gap-4">
+          <div 
+            className="p-3 rounded-lg"
+            style={{ backgroundColor: themeColors.primary }}
+          >
+            <Settings className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 
+              className="text-2xl sm:text-3xl font-bold"
+              style={{ color: themeColors.textPrimary }}
+            >
+              Master PO Creation
+            </h1>
+            <p 
+              className="text-sm mt-1"
+              style={{ color: themeColors.textSecondary }}
+            >
+              Create and manage project work orders
+            </p>
+          </div>
         </div>
 
-        {selectedCompanyId && (
-          <div className="lg:w-auto flex items-end">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <SearchableClientDropdown
+              options={companies}
+              value={selectedCompanyId}
+              onChange={handleCompanyChange}
+              placeholder="Search client"
+              disabled={loading.companies}
+              isLoading={loading.companies}
+            />
+          </div>
+
+          {selectedCompanyId && (
             <button
               onClick={() => handleCompanyChange("")}
-              className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-xl transition-colors duration-200 flex items-center gap-2"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2"
+              style={{ 
+                backgroundColor: themeColors.lightBorder,
+                color: themeColors.textSecondary,
+                ringColor: themeColors.accent 
+              }}
             >
               <X size={16} />
               Clear Selection
             </button>
-          </div>
-        )}
+          )}
 
-        <div className="lg:w-auto flex items-end">
           <button
             onClick={onShowProjectModal}
-            className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+            className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2"
+            style={{ 
+              backgroundColor: selectedCompanyId ? themeColors.primary : themeColors.textSecondary,
+              ringColor: themeColors.accent 
+            }}
             disabled={!selectedCompanyId}
           >
             <Plus size={18} className="group-hover:rotate-90 transition-transform duration-200" />

@@ -28,7 +28,7 @@ const encodedUserId = localStorage.getItem("encodedUserId");
 const getTopMenus = (encodedUserId) => [
   { id: 1, name: 'Dashboard', path: `/admin/dashboard/${encodedUserId}`, activePath:"/admin/dashboard", icon: LayoutDashboard },
   { id: 2, name: 'Contract Management', path: `/admin/contracts/master-client/${encodedUserId}`, activePath:"/admin/contracts", icon: PaintBucket },
-  { id: 3, name: 'Supply Management', path: '/supply', activePath:"/supply", icon: Package },
+  { id: 3, name: 'Supply Management', path: `/admin/supply/master-client/${encodedUserId}`, activePath:"/admin/supply", icon: Package },
   { id: 4, name: 'Finance Management', path: '/finance', activePath:"/finance", icon: IndianRupee },
   { id: 5, name: 'Resource Management', path: '/resources', activePath:"/resources", icon: SwatchBook },
   { id: 6, name: 'Site Incharge', path: '/site-incharge', activePath:"/site-incharge", icon: Users },
@@ -85,16 +85,23 @@ export const sidebarConfig = {
       // },
     },
   ],
-  '/supply': [
+  '/admin/supply': [
     {
-      title: 'Inventory',
-      icon: Boxes,
+      title: 'Master',
+      icon: ClipboardList,
       items: [
-        { label: 'Material Supply', to: '/supply/stock', icon: Boxes },
+        { label: 'Client Master Creation', to: `/admin/supply/master-client/${encodedUserId}`, icon: Users },
+        { label: 'Master PO Creation', to: `/admin/supply/master-po/${encodedUserId}`, icon: FileText },
         // { label: 'Vendors', to: '/supply/vendors', icon: Users },
         // { label: 'Purchase Orders', to: '/supply/po', icon: FileText },
       ],
-    },
+    }, {
+      title: 'Supply',
+      icon: PanelsTopLeft,
+      items: [
+        { label: 'Supply Material Planning', to: `/admin/supply/material-planning/${encodedUserId}`, icon: FileText }, 
+      ]
+    }
   ],
   '/finance': [
     {

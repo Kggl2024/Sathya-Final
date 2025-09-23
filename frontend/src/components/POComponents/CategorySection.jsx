@@ -4,6 +4,16 @@ import { ChevronDown, ChevronUp, Settings, Trash2, Plus } from "lucide-react";
 import SearchableDropdown from "./SearchableDropdown";
 import ItemsTable from "./ItemsTable";
 
+const themeColors = {
+  primary: '#1e7a6f',    // Dark Teal
+  accent: '#c79100',      // Gold/Amber
+  lightBg: '#f8f9fa',    // Very light gray for page background
+  textPrimary: '#212529', // Dark charcoal for text
+  textSecondary: '#6c757d', // Gray for secondary text
+  border: '#dee2e6',      // Neutral border color
+  lightBorder: '#e9ecef', // Lighter border for internal elements
+};
+
 const CategorySection = ({
   category,
   categoryIndex,
@@ -30,13 +40,18 @@ const CategorySection = ({
   formDataCategoriesLength
 }) => {
   return (
-    <div
-      className={`border-2 rounded-2xl p-6 space-y-6 ${getRandomColor(categoryIndex)} shadow-lg hover:shadow-xl transition-all duration-300`}
+    <div 
+      className="bg-white rounded-lg border p-6 space-y-6"
+      style={{ borderColor: themeColors.border, backgroundColor: '#ffffff' }}
     >
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label 
+              className="block text-sm font-semibold mb-2"
+              style={{ color: themeColors.textSecondary }}
+            >
               Category Name
             </label>
             <SearchableDropdown
@@ -62,9 +77,13 @@ const CategorySection = ({
               <button
                 type="button"
                 onClick={() => removeCategory(categoryIndex)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2"
+                style={{ 
+                  backgroundColor: '#dc2626', // Tailwind red-600
+                  ringColor: themeColors.accent 
+                }}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4" />
                 Remove Category
               </button>
             )}
@@ -73,7 +92,8 @@ const CategorySection = ({
         <button
           type="button"
           onClick={() => toggleCategory(categoryIndex)}
-          className="ml-4 p-3 rounded-xl hover:bg-white/50 transition-colors duration-200 shadow-md"
+          className="ml-4 p-2 rounded-lg transition-colors duration-200"
+          style={{ backgroundColor: themeColors.lightBorder }}
           aria-label={
             openCategories[categoryIndex]
               ? "Collapse Category"
@@ -81,20 +101,34 @@ const CategorySection = ({
           }
         >
           {openCategories[categoryIndex] ? (
-            <ChevronUp className="w-5 h-5 text-slate-600" />
+            <ChevronUp 
+              className="w-6 h-6"
+              style={{ color: themeColors.textSecondary }}
+            />
           ) : (
-            <ChevronDown className="w-5 h-5 text-slate-600" />
+            <ChevronDown 
+              className="w-6 h-6"
+              style={{ color: themeColors.textSecondary }}
+            />
           )}
         </button>
       </div>
 
       {openCategories[categoryIndex] && category.categoryName && (
-        <div className="space-y-6 mt-6 transition-all duration-300">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Settings className="w-4 h-4 text-indigo-600" />
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <div 
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: themeColors.primary }}
+            >
+              <Settings className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700">Items</h3>
+            <h3 
+              className="text-lg font-semibold"
+              style={{ color: themeColors.textPrimary }}
+            >
+              Items
+            </h3>
           </div>
           
           <ItemsTable
@@ -119,9 +153,13 @@ const CategorySection = ({
             <button
               type="button"
               onClick={(e) => addItemRow(categoryIndex, e)}
-              className="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2"
+              style={{ 
+                backgroundColor: themeColors.primary,
+                ringColor: themeColors.accent 
+              }}
             >
-              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
               Add Item
             </button>
           </div>

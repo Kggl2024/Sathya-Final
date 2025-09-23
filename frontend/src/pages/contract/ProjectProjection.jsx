@@ -26,106 +26,93 @@ const ProjectProjection = () => {
   const [error, setError] = useState(null);
 
   // Fetch companies
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get("http://localhost:5000/admin/companies");
-      if (response.data.success) {
-        const companyOptions = response.data.data.map((company) => ({
-          value: company.company_id,
-          label: company.company_name,
-        }));
-        setCompanies(companyOptions);
-        if (response.data.data.length === 1) {
-          setSelectedCompany(companyOptions[0]);
-        }
-      } else {
-        setError("Failed to fetch companies.");
-      }
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-      setError("Failed to load companies. Please try again.");
-    } finally {
-      setLoading(false);
+const fetchCompanies = async () => {
+  try {
+    setLoading(true);
+    const response = await axios.get("http://localhost:5000/admin/companies");
+    if (response.data.success) {
+      const companyOptions = response.data.data.map((company) => ({
+        value: company.company_id,
+        label: company.company_name,
+      }));
+      setCompanies(companyOptions);
+    } else {
+      setError("Failed to fetch companies.");
     }
-  };
+  } catch (error) {
+    console.error("Error fetching companies:", error);
+    setError("Failed to load companies. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // Fetch projects by company ID
-  const fetchProjects = async (companyId) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
-      if (response.data.success) {
-        const projectOptions = response.data.data.map((project) => ({
-          value: project.pd_id,
-          label: project.project_name,
-        }));
-        setProjects(projectOptions);
-        if (response.data.data.length === 1) {
-          setSelectedProject(projectOptions[0]);
-        }
-      } else {
-        setError("Failed to fetch projects.");
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setError("Failed to load projects. Please try again.");
-    } finally {
-      setLoading(false);
+// Fetch projects by company ID
+const fetchProjects = async (companyId) => {
+  try {
+    setLoading(true);
+    const response = await axios.get(`http://localhost:5000/admin/projects/${companyId}`);
+    if (response.data.success) {
+      const projectOptions = response.data.data.map((project) => ({
+        value: project.pd_id,
+        label: project.project_name,
+      }));
+      setProjects(projectOptions);
+    } else {
+      setError("Failed to fetch projects.");
     }
-  };
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    setError("Failed to load projects. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+// Fetch sites by project ID
+const fetchSites = async (projectId) => {
+  try {
+    setLoading(true);
+    const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
+    if (response.data.success) {
+      const siteOptions = response.data.data.map((site) => ({
+        value: site.site_id,
+        label: `${site.site_name} (PO: ${site.po_number})`,
+      }));
+      setSites(siteOptions);
+    } else {
+      setError("Failed to fetch sites.");
+    }
+  } catch (error) {
+    console.error("Error fetching sites:", error);
+    setError("Failed to load sites. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // Fetch sites by project ID
-  const fetchSites = async (projectId) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:5000/admin/sites/${projectId}`);
-      if (response.data.success) {
-        const siteOptions = response.data.data.map((site) => ({
-          value: site.site_id,
-          label: `${site.site_name} (PO: ${site.po_number})`,
-        }));
-        setSites(siteOptions);
-        if (response.data.data.length === 1) {
-          setSelectedSite(siteOptions[0]);
-        }
-      } else {
-        setError("Failed to fetch sites.");
-      }
-    } catch (error) {
-      console.error("Error fetching sites:", error);
-      setError("Failed to load sites. Please try again.");
-    } finally {
-      setLoading(false);
+// Fetch work descriptions by site ID
+const fetchWorkDescriptions = async (siteId) => {
+  try {
+    setLoading(true);
+    const response = await axios.get(
+      `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
+    );
+    if (response.data.success) {
+      const descOptions = response.data.data.map((desc) => ({
+        value: desc.desc_id,
+        label: desc.desc_name,
+      }));
+      setWorkDescriptions(descOptions);
+    } else {
+      setError("Failed to fetch work descriptions.");
     }
-  };
-
-  // Fetch work descriptions by site ID
-  const fetchWorkDescriptions = async (siteId) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        `http://localhost:5000/admin/work-descriptions-by-site/${siteId}`
-      );
-      if (response.data.success) {
-        const descOptions = response.data.data.map((desc) => ({
-          value: desc.desc_id,
-          label: desc.desc_name,
-        }));
-        setWorkDescriptions(descOptions);
-        if (response.data.data.length === 1) {
-          setSelectedWorkDescription(descOptions[0]);
-        }
-      } else {
-        setError("Failed to fetch work descriptions.");
-      }
-    } catch (error) {
-      console.error("Error fetching work descriptions:", error);
-      setError("Failed to load work descriptions. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error("Error fetching work descriptions:", error);
+    setError("Failed to load work descriptions. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch budget details by site ID and work description ID
   const fetchBudgetDetails = async (siteId, descId) => {

@@ -3,6 +3,16 @@ import React from "react";
 import { MapPin } from "lucide-react";
 import SiteCard from "./SiteCard";
 
+const themeColors = {
+  primary: '#1e7a6f',    // Dark Teal
+  accent: '#c79100',      // Gold/Amber
+  lightBg: '#f8f9fa',    // Very light gray for page background
+  textPrimary: '#212529', // Dark charcoal for text
+  textSecondary: '#6c757d', // Gray for secondary text
+  border: '#dee2e6',      // Neutral border color
+  lightBorder: '#e9ecef', // Lighter border for internal elements
+};
+
 const SitesList = ({
   selectedCompanyId,
   sites,
@@ -29,17 +39,40 @@ const SitesList = ({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
-          <MapPin className="w-5 h-5 text-white" />
+    <div 
+      className="bg-white rounded-xl shadow-sm border p-6" 
+      style={{ borderColor: themeColors.border, backgroundColor: '#ffffff' }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div 
+          className=" rounded-lg"
+        >
+          <MapPin className="w-6 h-6 text-[#1e7a6f]" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Sites for Selected Client</h2>
-        <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-          {sites.length} sites
+        <div className="flex gap-3 items-center">
+          <div>
+            <h2 
+            className="text-2xl font-bold"
+            style={{ color: themeColors.textPrimary }}
+            >
+              Sites for Selected Client
+            </h2>
+          </div>
+          
+          <div 
+            className="px-2 rounded-full text-sm font-medium"
+            style={{ 
+              backgroundColor: themeColors.lightBorder,
+              color: themeColors.textSecondary 
+            }}
+          >
+            {sites.length} sites
+          </div>
         </div>
       </div>
 
+      {/* Sites List */}
       <div className="space-y-4">
         {sites.map((site, index) => (
           <SiteCard

@@ -2,6 +2,16 @@
 import React from "react";
 import { FileText, Plus, X } from "lucide-react";
 
+const themeColors = {
+  primary: '#1e7a6f',    // Dark Teal
+  accent: '#c79100',      // Gold/Amber
+  lightBg: '#f8f9fa',    // Very light gray for page background
+  textPrimary: '#212529', // Dark charcoal for text
+  textSecondary: '#6c757d', // Gray for secondary text
+  border: '#dee2e6',      // Neutral border color
+  lightBorder: '#e9ecef', // Lighter border for internal elements
+};
+
 const WorkDescriptionsSection = ({ 
   site, 
   siteReckonerData, 
@@ -9,39 +19,74 @@ const WorkDescriptionsSection = ({
   handleCreateReckoner, 
   children 
 }) => {
-    console.log("siteReckonerData:", siteReckonerData);
   const hasSiteReckoner = siteReckonerData[site.site_id]?.length > 0;
   const isCreatingReckoner = creatingReckonerSiteId === site.site_id;
 
   return (
-    <div className="bg-gradient-to-r from-slate-50 to-purple-50 p-6 rounded-xl border border-slate-200 shadow-inner">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-purple-100 rounded-lg">
-          <FileText className="w-5 h-5 text-purple-600" />
+    <div 
+      className="p-6 rounded-xl border"
+      style={{ backgroundColor: themeColors.lightBg, borderColor: themeColors.border }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <div 
+          className="p-3 rounded-lg"
+          style={{ backgroundColor: themeColors.primary }}
+        >
+          <FileText className="w-6 h-6 text-white" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-800">Work Descriptions</h3>
+        <h3 
+          className="text-lg font-semibold"
+          style={{ color: themeColors.textPrimary }}
+        >
+          Work Descriptions
+        </h3>
       </div>
 
       {hasSiteReckoner ? (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <thead className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
+          <table 
+            className="min-w-full bg-white rounded-lg border"
+            style={{ borderColor: themeColors.border }}
+          >
+            <thead 
+              className="border-b"
+              style={{ backgroundColor: themeColors.lightBg, borderColor: themeColors.border }}
+            >
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <th 
+                  className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: themeColors.textSecondary }}
+                >
                   Category
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <th 
+                  className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: themeColors.textSecondary }}
+                >
                   Description
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody 
+              className="divide-y"
+              style={{ divideColor: themeColors.lightBorder }}
+            >
               {siteReckonerData[site.site_id].map((item, index) => (
-                <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                <tr 
+                  key={index} 
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  <td 
+                    className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                    style={{ color: themeColors.textPrimary }}
+                  >
                     {item.category_name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                  <td 
+                    className="px-6 py-4 whitespace-nowrap text-sm"
+                    style={{ color: themeColors.textSecondary }}
+                  >
                     {item.desc_name}
                   </td>
                 </tr>
@@ -50,28 +95,52 @@ const WorkDescriptionsSection = ({
           </table>
         </div>
       ) : isCreatingReckoner ? (
-        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+        <div 
+          className="bg-white rounded-lg p-6 border"
+          style={{ borderColor: themeColors.border }}
+        >
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Plus className="w-5 h-5 text-indigo-600" />
+            <div 
+              className="rounded-lg"
+              // style={{ backgroundColor: themeColors.primary }}
+            >
+              <Plus className="w-6 h-6 text-[#1e7a6f]" />
             </div>
-            <h4 className="text-lg font-semibold text-slate-700">
+            <h4 
+              className="text-lg font-semibold"
+              style={{ color: themeColors.textPrimary }}
+            >
               Create Reckoner for {site.site_name}
             </h4>
           </div>
           {children}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <div className="p-4 bg-red-100 rounded-2xl">
-            <X className="w-8 h-8 text-red-500" />
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <div 
+            className="p-3 rounded-lg"
+            style={{ backgroundColor: themeColors.lightBorder }}
+          >
+            <X 
+              className="w-6 h-6"
+              style={{ color: themeColors.textSecondary }}
+            />
           </div>
-          <p className="text-sm text-red-600 font-medium">Reckoner Not Created</p>
+          <p 
+            className="text-sm font-medium"
+            style={{ color: themeColors.textSecondary }}
+          >
+            Reckoner Not Created
+          </p>
           <button
             onClick={() => handleCreateReckoner(site.site_id)}
-            className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="group flex items-center gap-2 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all duration-200 transform hover:opacity-90 focus:outline-none focus:ring-2"
+            style={{ 
+              backgroundColor: themeColors.primary,
+              ringColor: themeColors.accent 
+            }}
           >
-            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
             Create Reckoner
           </button>
         </div>

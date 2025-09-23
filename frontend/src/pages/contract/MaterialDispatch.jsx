@@ -1,143 +1,107 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import Select from "react-select";
+import CreatableSelect from 'react-select/creatable';
 import { Loader2, Package, FileText, X, Truck, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 
-const SearchableDropdown = ({ options, selectedValue, onSelect, placeholder, searchKeys, label, disabled, loading, allowNew, onNewEntryChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        if (allowNew && searchQuery && !options.some(opt => opt.id === searchQuery)) {
-          onSelect(searchQuery);
-        }
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [searchQuery, options, onSelect, allowNew]);
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    if (allowNew && value) {
-      onSelect(value);
-      if (onNewEntryChange) {
-        onNewEntryChange(value);
-      }
-    }
-  };
-
-  const filteredOptions = options.filter((option) =>
-    searchKeys.some((key) =>
-      option[key]?.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
+const SearchableDropdown = ({ options, selectedValue, onSelect, placeholder, searchKeys, label, disabled, loading }) => {
+  // Memoize options to prevent unnecessary re-renders
+  const selectOptions = useMemo(
+    () =>
+      options.map((option) => ({
+        value: option.id,
+        label: option[searchKeys[0]]?.toString() || "",
+        subLabel: searchKeys[1] ? option[searchKeys[1]]?.toString() || "" : null,
+      })),
+    [options, searchKeys]
   );
 
-  const handleSelect = (value) => {
-    onSelect(value);
-    setIsOpen(false);
-    setSearchQuery("");
+  // Find the selected option or set to null if not found
+  const selectedOption = useMemo(
+    () => selectOptions.find((opt) => opt.value === selectedValue) || null,
+    [selectOptions, selectedValue]
+  );
+
+  // Handle selection change
+  const handleChange = (selected) => {
+    onSelect(selected ? selected.value : "");
   };
 
-  const selectedOption = options.find((option) => option.id === selectedValue);
+  // Custom filter function for searching both label and subLabel
+  const customFilter = (option, searchText) => {
+    if (!searchText) return true;
+    return (
+      option.data.label?.toLowerCase().includes(searchText.toLowerCase()) ||
+      option.data.subLabel?.toLowerCase().includes(searchText.toLowerCase())
+    );
+  };
 
-  return (
-    <div className="relative" ref={dropdownRef}>
-      {isOpen ? (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="flex items-center px-3 py-2 border-b border-gray-200">
-            <input
-              type="text"
-              autoFocus
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder={`Search ${placeholder.toLowerCase()}...`}
-              className="flex-1 py-2 px-3 text-sm focus:outline-none bg-transparent"
-            />
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                if (allowNew && searchQuery && !options.some(opt => opt.id === searchQuery)) {
-                  onSelect(searchQuery);
-                }
-              }}
-              className="ml-2 text-gray-500 hover:text-gray-700"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="max-h-60 overflow-y-auto">
-            {loading ? (
-              <div className="px-4 py-3 text-gray-500 text-sm flex items-center">
-                <Loader2 className="h-4 w-4 text-teal-500 animate-spin mr-2" />
-                Loading {placeholder.toLowerCase()}...
-              </div>
-            ) : filteredOptions.length === 0 && !allowNew ? (
-              <div className="px-4 py-3 text-gray-500 text-sm">
-                No matching {placeholder.toLowerCase()} found
-              </div>
-            ) : (
-              filteredOptions.map((option) => (
-                <div
-                  key={option.id}
-                  onClick={() => handleSelect(option.id)}
-                  className={`px-4 py-3 text-sm cursor-pointer hover:bg-teal-50 transition-colors ${
-                    selectedValue === option.id ? "bg-teal-100 text-teal-800" : "text-gray-700"
-                  }`}
-                >
-                  <div className="font-medium">{option[searchKeys[0]]}</div>
-                  {searchKeys[1] && (
-                    <div className="text-xs text-gray-500">{option[searchKeys[1]]}</div>
-                  )}
-                </div>
-              ))
-            )}
-            {allowNew && searchQuery && !filteredOptions.some(opt => opt[searchKeys[0]]?.toLowerCase() === searchQuery.toLowerCase()) && (
-              <div
-                onClick={() => handleSelect(searchQuery)}
-                className="px-4 py-3 text-sm cursor-pointer hover:bg-teal-50 transition-colors text-gray-700"
-              >
-                <div className="font-medium">Add "{searchQuery}"</div>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => !disabled && setIsOpen(true)}
-          className={`w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-left hover:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400 transition-all ${
-            disabled ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          disabled={disabled}
-        >
-          <div>
-            {selectedOption ? (
-              <>
-                <div className="font-medium text-gray-900 text-sm">
-                  {selectedOption[searchKeys[0]]}
-                </div>
-                {searchKeys[1] && (
-                  <div className="text-xs text-gray-500">{selectedOption[searchKeys[1]]}</div>
-                )}
-              </>
-            ) : selectedValue && allowNew ? (
-              <div className="font-medium text-gray-900 text-sm">{selectedValue}</div>
-            ) : (
-              <span className="text-gray-500 text-sm">{placeholder}</span>
-            )}
-          </div>
-          <ChevronDown className="h-5 w-5 text-gray-400" />
-        </button>
-      )}
+  // Custom Option component for displaying label and subLabel
+  const CustomOption = ({ innerProps, data }) => (
+    <div
+      {...innerProps}
+      className={`px-4 py-3 text-sm cursor-pointer hover:bg-teal-50 transition-colors ${
+        selectedValue === data.value ? "bg-teal-100 text-teal-800" : "text-gray-700"
+      }`}
+    >
+      <div className="font-medium">{data.label}</div>
+      {data.subLabel && <div className="text-xs text-gray-500">{data.subLabel}</div>}
     </div>
   );
+
+  // Custom SingleValue component for displaying selected option
+  const CustomSingleValue = ({ innerProps, data }) => (
+    <div {...innerProps}>
+      <div className="font-medium text-gray-900 text-sm">{data.label}</div>
+      {data.subLabel && <div className="text-xs text-gray-500">{data.subLabel}</div>}
+    </div>
+  );
+
+  // Automatically select the first option if only one is available
+  useEffect(() => {
+    if (options.length === 1 && !selectedValue) {
+      onSelect(options[0].id);
+    }
+  }, [options, selectedValue, onSelect]);
+
+  return (
+    <Select
+      options={selectOptions}
+      value={selectedOption}
+      onChange={handleChange}
+      placeholder={placeholder}
+      isDisabled={disabled || loading}
+      isLoading={loading}
+      filterOption={customFilter}
+      components={{ Option: CustomOption, SingleValue: CustomSingleValue }}
+      isClearable
+      className="text-sm"
+      classNamePrefix="select"
+      styles={{
+        control: (provided, state) => ({
+          ...provided,
+          minHeight: "38px",
+          borderColor: state.isFocused ? "#14b8a6" : "#d1d5db",
+          boxShadow: state.isFocused ? "0 0 0 2px rgba(20, 184, 166, 0.2)" : "none",
+          backgroundColor: "white",
+        }),
+        singleValue: (provided) => ({
+          ...provided,
+          margin: 0,
+          padding: 0,
+        }),
+        menu: (provided) => ({
+          ...provided,
+          zIndex: 10,
+        }),
+      }}
+    />
+  );
 };
+
+
+
 
 const MaterialDispatch = () => {
   const [allProjects, setAllProjects] = useState([]);
@@ -1014,6 +978,30 @@ const MaterialDispatch = () => {
     }
   }, [transportData.transport_type_id]);
 
+  useEffect(() => {
+    if (providers.length === 1 && !transportData.provider_id) {
+      setTransportData(prev => ({ ...prev, provider_id: providers[0].id }));
+    }
+  }, [providers, transportData.provider_id]);
+
+  useEffect(() => {
+    if (vehicles.length === 1 && !transportData.vehicle_id) {
+      setTransportData(prev => ({ ...prev, vehicle_id: vehicles[0].id }));
+    }
+  }, [vehicles, transportData.vehicle_id]);
+
+  useEffect(() => {
+    if (drivers.length === 1 && !transportData.driver_id) {
+      setTransportData(prev => ({ ...prev, driver_id: drivers[0].id }));
+    }
+  }, [drivers, transportData.driver_id]);
+
+  useEffect(() => {
+    if (workDescriptions.length === 1 && !selectedWorkDesc) {
+      setSelectedWorkDesc(workDescriptions[0].desc_id);
+    }
+  }, [workDescriptions, selectedWorkDesc]);
+
   const isOwnVehicle = transportData.transport_type_id === "1";
 
   const workOptions = workDescriptions.map((desc) => ({
@@ -1109,29 +1097,29 @@ const MaterialDispatch = () => {
         {selectedCompany && selectedProject && selectedSite && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Select Work Description</label>
-        <Select
-  options={workOptions}
-  value={selectedWorkOption}
-  onChange={handleWorkDescChange}
-  placeholder="Select Work Description"
-  isSearchable
-  isClearable
-  isDisabled={loading.workDescriptions}
-  className="text-sm"
-  classNamePrefix="select"
-  styles={{
-    control: (provided, state) => ({
-      ...provided,
-      minHeight: '38px',
-      borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
-      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
-    }),
-    menu: (provided) => ({
-      ...provided,
-      zIndex: 10,
-    }),
-  }}
-/>
+            <Select
+              options={workOptions}
+              value={selectedWorkOption}
+              onChange={handleWorkDescChange}
+              placeholder="Select Work Description"
+              isSearchable
+              isClearable
+              isDisabled={loading.workDescriptions}
+              className="text-sm"
+              classNamePrefix="select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  minHeight: '38px',
+                  borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+                  boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  zIndex: 10,
+                }),
+              }}
+            />
             {loading.workDescriptions && <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />}
           </div>
         )}
@@ -1142,8 +1130,30 @@ const MaterialDispatch = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispatch Details</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <div className="w-full sm:w-1/5">
+                <label className="block text-xs font-medium text-gray-600" htmlFor="master_dc_no">
+                  Master DC No <span className="text-red-500">*</span>
+                </label>
+                {loading.masterDcNo ? (
+                  <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />
+                ) : isMasterDcNoEditable ? (
+                  <input
+                    type="text"
+                    id="master_dc_no"
+                    value={masterDcNo}
+                    onChange={(e) => handleMasterDcNoChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all duration-200"
+                    placeholder="Enter Master DC No"
+                    aria-required="true"
+                  />
+                ) : (
+                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
+                    {masterDcNo || "N/A"}
+                  </div>
+                )}
+              </div>
+              <div className="w-full sm:w-1/5">
                 <label className="block text-xs font-medium text-gray-600" htmlFor="dc_no">
-                  DC No <span className="text-red-500">*</span>
+                  PO DC No <span className="text-red-500">*</span>
                 </label>
                 <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
                   {loading.dcNo ? (
@@ -1181,28 +1191,6 @@ const MaterialDispatch = () => {
                 <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
                   {dispatchData.vendor_code || "N/A"}
                 </div>
-              </div>
-              <div className="w-full sm:w-1/5">
-                <label className="block text-xs font-medium text-gray-600" htmlFor="master_dc_no">
-                  Master DC No <span className="text-red-500">*</span>
-                </label>
-                {loading.masterDcNo ? (
-                  <Loader2 className="h-5 w-5 text-teal-500 animate-spin mt-2" />
-                ) : isMasterDcNoEditable ? (
-                  <input
-                    type="text"
-                    id="master_dc_no"
-                    value={masterDcNo}
-                    onChange={(e) => handleMasterDcNoChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all duration-200"
-                    placeholder="Enter Master DC No"
-                    aria-required="true"
-                  />
-                ) : (
-                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
-                    {masterDcNo || "N/A"}
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -189,10 +189,31 @@ const POMasterCreation = ({
           });
 
           const reckonerResults = await Promise.all(siteReckonerPromises);
+          // const reckonerDataMap = reckonerResults.reduce((acc, { siteId, data }) => {
+          //   acc[siteId] = data;
+          //   return acc;
+          // }, {});
+
           const reckonerDataMap = reckonerResults.reduce((acc, { siteId, data }) => {
-            acc[siteId] = data;
-            return acc;
-          }, {});
+              const isDuplicate = (item, index, array) => {
+                return array.findIndex((otherItem, otherIndex) =>
+                  otherIndex < index &&
+                  otherItem.category_name.toLowerCase() === item.category_name.toLowerCase() &&
+                  otherItem.desc_name.toLowerCase() === item.desc_name.toLowerCase()
+                ) !== -1;
+              };
+
+              // filter out duplicates
+              const uniqueData = data.filter((item, index, array) => !isDuplicate(item, index, array));
+
+              acc[siteId] = uniqueData;
+              return acc;
+            }, {});
+
+            console.log("Fetched site reckoner data:", reckonerDataMap);
+
+          console.log("Fetched site reckoner data:", reckonerDataMap);
+
           setSiteReckonerData(reckonerDataMap);
         } catch (err) {
           Swal.fire({
@@ -960,7 +981,7 @@ const POMasterCreation = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#f8f9fa] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <HeaderSection
