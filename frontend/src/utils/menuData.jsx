@@ -99,9 +99,11 @@ export const sidebarConfig = {
       title: 'Supply',
       icon: PanelsTopLeft,
       items: [
-        { label: 'Supply Material Planning', to: `/admin/supply/material-planning/${encodedUserId}`, icon: FileText }, 
+        { label: 'Supply Material Planning', to: `/admin/supply/material-planning/${encodedUserId}`, icon: Boxes }, 
+        { label: 'Supply Material Dispatch', to: `/admin/supply/material-dispatch/${encodedUserId}`, icon: Truck },
+        { label: 'Supplied Materials', to: `/admin/supply/supplied-materials/${encodedUserId}`, icon: Boxes },
       ]
-    }
+    } 
   ],
   '/finance': [
     {

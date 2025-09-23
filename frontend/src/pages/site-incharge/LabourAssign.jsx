@@ -27,7 +27,7 @@ const LabourAssign = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/project/companies");
+        const response = await axios.get("http://103.118.158.127/api/project/companies");
         if (Array.isArray(response.data) && response.data.length > 0) {
           setCompanies(response.data);
         } else {
@@ -46,7 +46,7 @@ const LabourAssign = () => {
     if (selectedCompany) {
       const fetchProjectsAndSites = async () => {
         try {
-          const response = await axios.get("http://localhost:5000/project/projects-with-sites");
+          const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
           if (Array.isArray(response.data) && response.data.length > 0) {
             const filteredProjects = response.data.filter(project => project.company_id === selectedCompany.value);
             setProjects(filteredProjects);
@@ -96,7 +96,7 @@ const LabourAssign = () => {
         setLoading(true);
         try {
           const response = await axios.get(
-            `http://localhost:5000/site-incharge/work-descriptions?site_id=${selectedSite.value}`
+            `http://103.118.158.127/api/site-incharge/work-descriptions?site_id=${selectedSite.value}`
           );
           if (isMounted) {
             setWorkDescriptions(response.data.data || []);
@@ -116,7 +116,7 @@ const LabourAssign = () => {
       const fetchLabours = async () => {
         setLoading(true);
         try {
-          const response = await axios.get("http://localhost:5000/site-incharge/labours");
+          const response = await axios.get("http://103.118.158.127/api/site-incharge/labours");
           console.log("Labours fetched:", response.data); // Debug log
           if (isMounted) {
             setLabours(response.data.data || []);
@@ -182,7 +182,7 @@ const LabourAssign = () => {
       };
       console.log("Sending payload:", payload); // Debug log
       const response = await axios.post(
-        "http://localhost:5000/site-incharge/save-labour-assignment",
+        "http://103.118.158.127/api/site-incharge/save-labour-assignment",
         payload
       );
       toast.success(response.data.message);

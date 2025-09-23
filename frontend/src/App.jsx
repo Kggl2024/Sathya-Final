@@ -23,6 +23,7 @@ import LabourAssign from './pages/site-incharge/LabourAssign';
 import LabourAttendance from './pages/site-incharge/LabourAttendance';
 import AdditionalExpense from './pages/site-incharge/AdditionalExpense';
 import SupplyClientMasterCreation from './pages/supply/SupplyClientMasterCreation';
+import SupplyMaterialPlanning from './pages/supply/SupplyMaterialPlanning';
 
 const Placeholder = ({ title }) => (
   <div className="p-4">
@@ -162,6 +163,40 @@ const App = () => {
                 <ProtectedRoute role="admin">
                     <POMasterMain />
                 </ProtectedRoute>} 
+          />
+
+          <Route 
+              path="/admin/supply/master-po/:encodedUserId" 
+              element={
+                <ProtectedRoute role="admin">
+                    <POMasterMain />
+                </ProtectedRoute>} 
+          />
+
+          <Route 
+              path="/admin/supply/material-planning/:encodedUserId"
+              element={
+                <ProtectedRoute role="admin">
+                  <SupplyMaterialPlanning />
+                </ProtectedRoute>
+              }
+          />
+          <Route 
+              path="/admin/supply/material-dispatch/:encodedUserId"
+              element={
+                <ProtectedRoute role="admin">
+                  <Placeholder title="Supply Material Dispatch" />
+                </ProtectedRoute>
+              }
+          />
+
+          <Route 
+              path="/admin/supply/supplied-materials/:encodedUserId"
+              element={
+                <ProtectedRoute role="admin">
+                  <Placeholder title="Supplied Materials" />
+                </ProtectedRoute>
+              }
           />
           <Route path="/supply/stock" element={<Placeholder title="Stock" />} />
           <Route path="/supply/vendors" element={<Placeholder title="Vendors" />} />
