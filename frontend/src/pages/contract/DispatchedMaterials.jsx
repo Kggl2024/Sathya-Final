@@ -797,9 +797,14 @@ const DispatchedMaterials = () => {
                             <p className="text-sm text-gray-900">{commonDispatchDetails.vehicle_number}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-gray-600">Next DC No</p>
-                            <p className="text-sm text-gray-900">{commonDispatchDetails.next_dc_no}</p>
+                            <p className="text-xs font-medium text-gray-600">Driver Name</p>
+                            <p className="text-sm text-gray-900">{commonDispatchDetails.driver_name}</p>
                           </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600">Driver Mobile</p>
+                            <p className="text-sm text-gray-900">{commonDispatchDetails.driver_mobile}</p>
+                          </div>
+                         
                         </div>
                       </div>
 

@@ -43,6 +43,9 @@ router.post('/save-actual-budget', adminController.saveActualBudget);
 
 router.get('/actual-budget/:po_budget_id', adminController.getActualBudgetEntries);
 
+// Add the new route for fetching material planning budget
+router.get('/fetch-material-planning-budget', adminController.fetchMaterialPlanningBudget);
+
 
 // Route to get contractors
 router.get('/contractors', adminController.getContractors);

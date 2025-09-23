@@ -838,21 +838,27 @@ exports.getActualBudgetEntries = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT ab.overhead_id, ab.splitted_budget, ab.actual_value, ab.difference_value, ab.remarks
+      `SELECT ab.overhead_id, o.expense_name, ab.splitted_budget, ab.actual_value, ab.difference_value, ab.remarks, pb.site_id, pb.desc_id
        FROM actual_budget ab
        JOIN po_budget pb ON ab.po_budget_id = pb.id
+       JOIN overhead o ON ab.overhead_id = o.id
        WHERE ab.po_budget_id = ?`,
       [po_budget_id]
     );
+    
     const entries = {};
     rows.forEach((row) => {
       entries[row.overhead_id] = {
+        expense_name: row.expense_name || "Unknown Expense",
         splitted_budget: row.splitted_budget !== null ? parseFloat(row.splitted_budget).toFixed(2) : null,
         actual_value: row.actual_value !== null ? parseFloat(row.actual_value).toFixed(2) : null,
         difference_value: row.difference_value !== null ? parseFloat(row.difference_value).toFixed(2) : null,
         remarks: row.remarks || "",
+        site_id: row.site_id,
+        desc_id: row.desc_id,
       };
     });
+
     res.status(200).json({
       success: true,
       data: entries,
@@ -866,7 +872,6 @@ exports.getActualBudgetEntries = async (req, res) => {
     });
   }
 };
-
 
 
 exports.getActualBudget = async (req, res) => {
@@ -906,6 +911,76 @@ exports.getActualBudget = async (req, res) => {
   }
 };
 
+exports.fetchMaterialPlanningBudget = async (req, res) => {
+  const { site_id, desc_id } = req.query;
+
+  if (!site_id || !desc_id) {
+    return res.status(400).json({
+      success: false,
+      message: "site_id and desc_id are required",
+    });
+  }
+
+  try {
+    // Step 1: Find po_budget_id from po_budget table
+    const [poBudgetRows] = await db.query(
+      `SELECT id FROM po_budget WHERE site_id = ? AND desc_id = ?`,
+      [site_id, desc_id]
+    );
+
+    if (poBudgetRows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        splitted_budget: null,
+        assigned_budget: "0.00",
+        balance_budget: null,
+      });
+    }
+
+    const po_budget_id = poBudgetRows[0].id;
+
+    // Step 2: Fetch splitted_budget from actual_budget where overhead_id = 1
+    const [budgetRows] = await db.query(
+      `SELECT splitted_budget
+       FROM actual_budget
+       WHERE po_budget_id = ? AND overhead_id = 1`,
+      [po_budget_id]
+    );
+
+    const splitted_budget = budgetRows.length > 0 && budgetRows[0].splitted_budget !== null
+      ? parseFloat(budgetRows[0].splitted_budget).toFixed(2)
+      : null;
+
+    // Step 3: Fetch assigned_budget as sum(quantity * rate) from material_assign
+    const [assignedRows] = await db.query(
+      `SELECT IFNULL(SUM(quantity * rate), 0) AS assigned_budget
+       FROM material_assign
+       WHERE site_id = ? AND desc_id = ?`,
+      [site_id, desc_id]
+    );
+
+    const assigned_budget = parseFloat(assignedRows[0].assigned_budget).toFixed(2);
+
+    // Step 4: Calculate balance_budget
+    const balance_budget = splitted_budget !== null
+      ? (parseFloat(splitted_budget) - parseFloat(assigned_budget)).toFixed(2)
+      : null;
+
+    res.status(200).json({
+      success: true,
+      splitted_budget,
+      assigned_budget,
+      balance_budget,
+    });
+  } catch (error) {
+    console.error("Error fetching material planning budget:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch material planning budget",
+      error: error.message,
+    });
+  }
+};
 
 
 
