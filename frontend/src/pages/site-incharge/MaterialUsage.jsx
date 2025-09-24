@@ -30,7 +30,7 @@ const MaterialUsage = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/project/companies");
+      const response = await axios.get("http://localhost:5000/project/companies");
       setCompanies(response.data || []);
     } catch (err) {
       setError("Failed to fetch companies");
@@ -44,7 +44,7 @@ const MaterialUsage = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/project/projects-with-sites");
+      const response = await axios.get("http://localhost:5000/project/projects-with-sites");
       setAllProjects(response.data || []);
     } catch (err) {
       setError("Failed to fetch projects");
@@ -58,7 +58,7 @@ const MaterialUsage = () => {
   const fetchWorkDescriptions = async (site_id) => {
     try {
       setLoading(true);
-      const response = await axios.get("http://103.118.158.127/api/material/work-descriptions", {
+      const response = await axios.get("http://localhost:5000/material/work-descriptions", {
         params: { site_id },
       });
       setWorkDescriptions(response.data.data || []);
@@ -131,7 +131,7 @@ const MaterialUsage = () => {
         setLoading(true);
         try {
           const response = await axios.get(
-            `http://103.118.158.127/api/material/dispatch-details/?pd_id=${selectedProject.value}&site_id=${selectedSite.value}&desc_id=${selectedWorkDescription.value}`
+            `http://localhost:5000/material/dispatch-details/?pd_id=${selectedProject.value}&site_id=${selectedSite.value}&desc_id=${selectedWorkDescription.value}`
           );
           const uniqueDispatches = [];
           const seenKeys = new Set();
@@ -146,7 +146,7 @@ const MaterialUsage = () => {
 
           const ackPromises = uniqueDispatches.map(dispatch =>
             axios.get(
-              `http://103.118.158.127/api/site-incharge/acknowledgement-details?material_dispatch_id=${dispatch.id}`
+              `http://localhost:5000/site-incharge/acknowledgement-details?material_dispatch_id=${dispatch.id}`
             ).catch(err => ({ data: { data: [] } }))
           );
 
@@ -184,7 +184,7 @@ const MaterialUsage = () => {
   const fetchUsageDetails = async (ackId) => {
     try {
       const response = await axios.get(
-        `http://103.118.158.127/api/site-incharge/material-usage-details?material_ack_id=${ackId}&date=${selectedDate}`
+        `http://localhost:5000/site-incharge/material-usage-details?material_ack_id=${ackId}&date=${selectedDate}`
       );
       setUsageDetails(prev => ({
         ...prev,
@@ -217,7 +217,7 @@ const MaterialUsage = () => {
         return;
       }
 
-      const response = await axios.post("http://103.118.158.127/api/site-incharge/save-material-usage", {
+      const response = await axios.post("http://localhost:5000/site-incharge/save-material-usage", {
         material_ack_id: ackId,
         entry_date: selectedDate,
         overall_qty: usageData.overall_qty !== "" ? parseInt(usageData.overall_qty) : null,
